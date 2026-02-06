@@ -3,8 +3,9 @@ import { BarChart3, ArrowUp, ArrowDown, Shield, Search, TrendingUp, FileText, Ey
 import { SearchBar } from '@/components/search/SearchBar';
 import { Footer } from '@/components/layout/Footer';
 import { TickerMarquee } from '@/components/TickerMarquee';
+import { Sparkline } from '@/components/Sparkline';
 import { stocksList } from '@/data/mockStocks';
-import { useWatchlistQuotes } from '@/hooks/useStockData';
+import { useWatchlistQuotes, useSparklines } from '@/hooks/useStockData';
 import { formatCurrency, formatPercent, formatLargeNumber } from '@/lib/formatters';
 import { Badge } from '@/components/ui/badge';
 
@@ -12,7 +13,9 @@ const EXPLORE_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'TSLA'];
 
 const Index = () => {
   const { data: liveQuotes } = useWatchlistQuotes(EXPLORE_TICKERS);
+  const { data: sparklines } = useSparklines(EXPLORE_TICKERS);
   const quoteMap = new Map((liveQuotes || []).map(q => [q.ticker, q]));
+  const sparkMap = new Map((sparklines || []).map(s => [s.symbol, s.prices]));
   const trendingStocks = stocksList.slice(0, 6);
 
   return (
@@ -46,6 +49,7 @@ const Index = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {trendingStocks.map(stock => {
             const live = quoteMap.get(stock.ticker);
+            const sparkData = sparkMap.get(stock.ticker);
             const price = live?.price ?? stock.price;
             const change = live?.change ?? stock.change;
             const changePercent = live?.changePercent ?? stock.changePercent;
@@ -67,7 +71,12 @@ const Index = () => {
                     <span className="font-mono">{formatPercent(changePercent)}</span>
                   </div>
                 </div>
-                <div className="text-sm text-muted-foreground truncate mb-2">{live?.name || stock.name}</div>
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <div className="text-sm text-muted-foreground truncate">{live?.name || stock.name}</div>
+                  {sparkData && sparkData.length > 1 && (
+                    <Sparkline data={sparkData} positive={isPositive} width={72} height={28} className="shrink-0" />
+                  )}
+                </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span className="font-mono font-medium text-foreground">{formatCurrency(price)}</span>
                   <span>{formatLargeNumber(marketCap)}</span>

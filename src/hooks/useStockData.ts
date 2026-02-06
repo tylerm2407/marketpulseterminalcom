@@ -28,6 +28,24 @@ async function fetchQuotes(tickers: string[]): Promise<QuoteData[]> {
   return transformFMPQuotes(data);
 }
 
+export interface SparklineData {
+  symbol: string;
+  prices: number[];
+}
+
+async function fetchSparklines(tickers: string[]): Promise<SparklineData[]> {
+  if (!tickers.length) return [];
+
+  const { data, error } = await supabase.functions.invoke('stock-data', {
+    body: { type: 'sparklines', tickers },
+  });
+
+  if (error) throw new Error(error.message || 'Failed to fetch sparklines');
+  if (data?.error) throw new Error(data.error);
+
+  return data as SparklineData[];
+}
+
 export function useStockDossier(ticker: string | undefined) {
   return useQuery({
     queryKey: ['stock-dossier', ticker],
@@ -64,6 +82,22 @@ export function useWatchlistQuotes(tickers: string[]) {
     enabled: tickers.length > 0,
     staleTime: 60 * 1000, // 1 minute
     refetchInterval: 60 * 1000, // Auto-refresh every minute
+    retry: 1,
+  });
+}
+
+export function useSparklines(tickers: string[]) {
+  return useQuery({
+    queryKey: ['sparklines', tickers],
+    queryFn: async () => {
+      try {
+        return await fetchSparklines(tickers);
+      } catch {
+        return [];
+      }
+    },
+    enabled: tickers.length > 0,
+    staleTime: 10 * 60 * 1000, // 10 minutes — sparklines don't change fast
     retry: 1,
   });
 }

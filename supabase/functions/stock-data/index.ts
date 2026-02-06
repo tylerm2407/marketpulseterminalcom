@@ -47,7 +47,7 @@ async function fetchDossier(ticker: string, apiKey: string) {
     fetchFMP('balance-sheet-statement', { ...sym, period: 'quarter', limit: '4' }, apiKey),
     fetchFMP('cash-flow-statement', { ...sym, period: 'annual', limit: '3' }, apiKey),
     fetchFMP('cash-flow-statement', { ...sym, period: 'quarter', limit: '4' }, apiKey),
-    fetchFMP('historical-price-eod-full', { ...sym, from: getDateNDaysAgo(365), to: getToday() }, apiKey),
+    fetchFMP('historical-price-eod/full', { ...sym, from: getDateNDaysAgo(365), to: getToday() }, apiKey),
     fetchFMP('stock-news', { tickers: ticker, limit: '10' }, apiKey),
     fetchFMP('institutional-holder', sym, apiKey),
     fetchFMP('insider-trading', sym, apiKey),
@@ -101,6 +101,31 @@ async function fetchSearch(query: string, apiKey: string) {
   return merged.slice(0, 10);
 }
 
+async function fetchSparklines(tickers: string[], apiKey: string) {
+  const from = getDateNDaysAgo(30);
+  const to = getToday();
+  const results = await Promise.all(
+    tickers.map(async (ticker) => {
+      const history = await fetchFMP('historical-price-eod/light', { symbol: ticker, from, to }, apiKey);
+      let points: any[] = [];
+      if (Array.isArray(history)) {
+        points = history;
+      } else if (history?.historical) {
+        points = history.historical;
+      }
+      // Return just close prices in chronological order (API returns newest first)
+      return {
+        symbol: ticker,
+        prices: points
+          .map((p: any) => p.close ?? p.price)
+          .filter((v: any) => typeof v === 'number')
+          .reverse(),
+      };
+    })
+  );
+  return results;
+}
+
 function getToday(): string {
   return new Date().toISOString().split('T')[0];
 }
@@ -140,6 +165,10 @@ serve(async (req) => {
       case 'search':
         if (!query) throw new Error('query is required for search type');
         data = await fetchSearch(query, apiKey);
+        break;
+      case 'sparklines':
+        if (!tickers?.length) throw new Error('tickers required for sparklines type');
+        data = await fetchSparklines(tickers.map((t: string) => t.toUpperCase()), apiKey);
         break;
       default:
         throw new Error(`Unknown type: ${type}`);
