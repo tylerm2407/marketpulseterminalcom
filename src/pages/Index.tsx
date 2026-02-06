@@ -10,7 +10,7 @@ const Index = () => {
   const trendingStocks = stocksList.slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-16 sm:pb-0">
       {/* Hero */}
       <section className="hero-gradient text-primary-foreground">
         <div className="container mx-auto px-4 pt-16 pb-20 max-w-3xl text-center">

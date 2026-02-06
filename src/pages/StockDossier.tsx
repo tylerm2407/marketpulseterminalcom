@@ -27,7 +27,7 @@ export default function StockDossier() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pb-16 sm:pb-0">
         <Header />
         <main className="container mx-auto px-4 py-6 max-w-5xl">
           <DossierSkeleton />
@@ -39,7 +39,7 @@ export default function StockDossier() {
 
   if (!stock) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pb-16 sm:pb-0">
         <Header />
         <main className="container mx-auto px-4 py-16 text-center">
           <AlertCircle className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
@@ -58,7 +58,7 @@ export default function StockDossier() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-16 sm:pb-0">
       <Header />
       <main className="container mx-auto px-4 py-6 max-w-5xl">
         {/* Live data indicator */}
