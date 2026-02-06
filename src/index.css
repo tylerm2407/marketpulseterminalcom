@@ -146,4 +146,21 @@
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+
+  .marquee-track {
+    animation: marquee-scroll 40s linear infinite;
+  }
+
+  .marquee-track:hover {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
