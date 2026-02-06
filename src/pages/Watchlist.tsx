@@ -3,13 +3,19 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { stocksMap } from '@/data/mockStocks';
-import { ArrowDown, ArrowUp, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { ArrowDown, ArrowUp, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatPercent, formatLargeNumber } from '@/lib/formatters';
+import { useWatchlistQuotes } from '@/hooks/useStockData';
 
 export default function Watchlist() {
   const { tickers, removeTicker } = useWatchlistStore();
+  const { data: liveQuotes, isLoading } = useWatchlistQuotes(tickers);
+
+  // Create a map of live quotes for easy lookup
+  const quoteMap = new Map(
+    (liveQuotes || []).map(q => [q.ticker, q])
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -18,7 +24,10 @@ export default function Watchlist() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Watchlist</h1>
-            <p className="text-sm text-muted-foreground mt-1">{tickers.length} stocks tracked</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {tickers.length} stocks tracked
+              {isLoading && <Loader2 className="h-3 w-3 animate-spin inline ml-2" />}
+            </p>
           </div>
         </div>
 
@@ -34,28 +43,42 @@ export default function Watchlist() {
         ) : (
           <div className="space-y-3">
             {tickers.map(ticker => {
-              const stock = stocksMap[ticker];
-              if (!stock) return null;
-              const isPositive = stock.change >= 0;
+              const liveQuote = quoteMap.get(ticker);
+              const mockStock = stocksMap[ticker];
+
+              // Use live data if available, otherwise fall back to mock
+              const name = liveQuote?.name || mockStock?.name || ticker;
+              const price = liveQuote?.price ?? mockStock?.price ?? 0;
+              const change = liveQuote?.change ?? mockStock?.change ?? 0;
+              const changePercent = liveQuote?.changePercent ?? mockStock?.changePercent ?? 0;
+              const marketCap = liveQuote?.marketCap ?? mockStock?.marketCap ?? 0;
+              const pe = liveQuote?.pe ?? mockStock?.valuation?.pe ?? 0;
+              const isPositive = change >= 0;
 
               return (
                 <div key={ticker} className="bg-card rounded-lg border border-border card-elevated p-4 flex items-center gap-4 hover:border-accent/30 transition-colors animate-fade-in">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <Link to={`/stock/${ticker}`} className="font-bold text-foreground hover:text-accent transition-colors font-mono">{ticker}</Link>
-                      <span className="text-sm text-muted-foreground truncate">{stock.name}</span>
+                      <span className="text-sm text-muted-foreground truncate">{name}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                      <span>Mkt Cap: {formatLargeNumber(stock.marketCap)}</span>
-                      <span>P/E: {stock.valuation.pe.toFixed(1)}</span>
+                      {marketCap > 0 && <span>Mkt Cap: {formatLargeNumber(marketCap)}</span>}
+                      {pe > 0 && <span>P/E: {pe.toFixed(1)}</span>}
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="font-bold text-foreground font-mono">{formatCurrency(stock.price)}</div>
-                    <div className={`flex items-center gap-1 text-sm justify-end ${isPositive ? 'text-gain' : 'text-loss'}`}>
-                      {isPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                      <span className="font-mono">{formatPercent(stock.changePercent)}</span>
-                    </div>
+                    {price > 0 ? (
+                      <>
+                        <div className="font-bold text-foreground font-mono">{formatCurrency(price)}</div>
+                        <div className={`flex items-center gap-1 text-sm justify-end ${isPositive ? 'text-gain' : 'text-loss'}`}>
+                          {isPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                          <span className="font-mono">{formatPercent(changePercent)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Loading...</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Link to={`/stock/${ticker}`}>
