@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { BarChart3, ArrowUp, ArrowDown, Shield, Search, TrendingUp, FileText, Eye } from 'lucide-react';
 import { SearchBar } from '@/components/search/SearchBar';
 import { Footer } from '@/components/layout/Footer';
+import { TickerMarquee } from '@/components/TickerMarquee';
 import { stocksList } from '@/data/mockStocks';
 import { formatCurrency, formatPercent, formatLargeNumber } from '@/lib/formatters';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +14,7 @@ const Index = () => {
     <div className="min-h-screen bg-background pb-16 sm:pb-0">
       {/* Hero */}
       <section className="hero-gradient text-primary-foreground">
-        <div className="container mx-auto px-4 pt-16 pb-20 max-w-3xl text-center">
+        <div className="container mx-auto px-4 pt-16 pb-12 max-w-3xl text-center">
           <div className="flex items-center justify-center gap-2.5 mb-6">
             <BarChart3 className="h-8 w-8 text-accent" />
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
@@ -30,6 +31,8 @@ const Index = () => {
             Try: AAPL, MSFT, NVDA, GOOGL, AMZN, TSLA
           </p>
         </div>
+        {/* Live ticker marquee */}
+        <TickerMarquee variant="hero" />
       </section>
 
       {/* Trending */}

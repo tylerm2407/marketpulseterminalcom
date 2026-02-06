@@ -1,5 +1,6 @@
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { TickerMarquee } from '@/components/TickerMarquee';
 import { Newspaper, ExternalLink, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -79,6 +80,7 @@ export default function News() {
   return (
     <div className="min-h-screen bg-background pb-16 sm:pb-0">
       <Header />
+      <TickerMarquee />
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         <div className="flex items-center gap-2 mb-6">
           <Newspaper className="h-5 w-5 text-accent" />
