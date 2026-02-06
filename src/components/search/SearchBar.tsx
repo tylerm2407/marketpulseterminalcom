@@ -74,7 +74,7 @@ export function SearchBar({ variant = 'header' }: { variant?: 'header' | 'hero' 
           onKeyDown={(e) => { if (e.key === 'Enter' && results.length > 0) handleSelect(results[0].ticker); }}
           placeholder="Search any stock by ticker or name..."
           className={isHero
-            ? 'pl-11 pr-10 h-14 text-base bg-card border-border shadow-lg rounded-xl focus-visible:ring-accent'
+            ? 'pl-11 pr-10 h-14 text-base bg-card text-foreground border-border shadow-lg rounded-xl focus-visible:ring-accent'
             : 'pl-9 pr-8 h-9 bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 focus-visible:ring-accent'
           }
         />
