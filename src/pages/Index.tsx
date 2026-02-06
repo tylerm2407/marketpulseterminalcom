@@ -4,10 +4,15 @@ import { SearchBar } from '@/components/search/SearchBar';
 import { Footer } from '@/components/layout/Footer';
 import { TickerMarquee } from '@/components/TickerMarquee';
 import { stocksList } from '@/data/mockStocks';
+import { useWatchlistQuotes } from '@/hooks/useStockData';
 import { formatCurrency, formatPercent, formatLargeNumber } from '@/lib/formatters';
 import { Badge } from '@/components/ui/badge';
 
+const EXPLORE_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'TSLA'];
+
 const Index = () => {
+  const { data: liveQuotes } = useWatchlistQuotes(EXPLORE_TICKERS);
+  const quoteMap = new Map((liveQuotes || []).map(q => [q.ticker, q]));
   const trendingStocks = stocksList.slice(0, 6);
 
   return (
@@ -40,7 +45,12 @@ const Index = () => {
         <h2 className="text-lg font-semibold text-foreground mb-6">Explore Stocks</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {trendingStocks.map(stock => {
-            const isPositive = stock.change >= 0;
+            const live = quoteMap.get(stock.ticker);
+            const price = live?.price ?? stock.price;
+            const change = live?.change ?? stock.change;
+            const changePercent = live?.changePercent ?? stock.changePercent;
+            const marketCap = live?.marketCap ?? stock.marketCap;
+            const isPositive = change >= 0;
             return (
               <Link
                 key={stock.ticker}
@@ -54,13 +64,13 @@ const Index = () => {
                   </div>
                   <div className={`flex items-center gap-0.5 text-sm font-semibold ${isPositive ? 'text-gain' : 'text-loss'}`}>
                     {isPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                    <span className="font-mono">{formatPercent(stock.changePercent)}</span>
+                    <span className="font-mono">{formatPercent(changePercent)}</span>
                   </div>
                 </div>
-                <div className="text-sm text-muted-foreground truncate mb-2">{stock.name}</div>
+                <div className="text-sm text-muted-foreground truncate mb-2">{live?.name || stock.name}</div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="font-mono font-medium text-foreground">{formatCurrency(stock.price)}</span>
-                  <span>{formatLargeNumber(stock.marketCap)}</span>
+                  <span className="font-mono font-medium text-foreground">{formatCurrency(price)}</span>
+                  <span>{formatLargeNumber(marketCap)}</span>
                 </div>
               </Link>
             );
