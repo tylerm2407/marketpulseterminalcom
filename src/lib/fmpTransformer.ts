@@ -433,8 +433,8 @@ export function transformFMPQuotes(raw: any[]): QuoteData[] {
     name: q.name,
     price: q.price,
     change: q.change || 0,
-    changePercent: q.changesPercentage || 0,
+    changePercent: q.changesPercentage || q.changePercentage || 0,
     marketCap: q.marketCap || 0,
-    pe: q.pe || 0,
+    pe: q.pe || q.peRatio || 0,
   }));
 }

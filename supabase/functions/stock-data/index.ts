@@ -76,11 +76,16 @@ async function fetchDossier(ticker: string, apiKey: string) {
 }
 
 async function fetchQuotes(tickers: string[], apiKey: string) {
-  if (tickers.length === 1) {
-    return fetchFMP('quote', { symbol: tickers[0] }, apiKey);
-  }
-  const result = await fetchFMP('batch-quote', { symbols: tickers.join(',') }, apiKey);
-  return result;
+  // Fetch individual quotes in parallel (batch-quote requires a higher FMP plan)
+  const results = await Promise.all(
+    tickers.map(async (ticker) => {
+      const data = await fetchFMP('quote', { symbol: ticker }, apiKey);
+      // FMP returns an array for single quote; grab first element
+      if (Array.isArray(data) && data.length > 0) return data[0];
+      return data;
+    })
+  );
+  return results.filter(Boolean);
 }
 
 async function fetchSearch(query: string, apiKey: string) {
