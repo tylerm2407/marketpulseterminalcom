@@ -62,9 +62,9 @@ export function useStockDossier(ticker: string | undefined) {
       }
     },
     enabled: !!ticker,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes cache
-    retry: 1,
+    staleTime: 4 * 60 * 60 * 1000, // 4 hours — matches server cache TTL
+    gcTime: 60 * 60 * 1000, // 1 hour in-memory cache
+    retry: 2,
   });
 }
 
@@ -80,9 +80,9 @@ export function useWatchlistQuotes(tickers: string[]) {
       }
     },
     enabled: tickers.length > 0,
-    staleTime: 60 * 1000, // 1 minute
-    refetchInterval: 60 * 1000, // Auto-refresh every minute
-    retry: 1,
+    staleTime: 3 * 60 * 1000, // 3 minutes — matches server quote cache
+    refetchInterval: 3 * 60 * 1000, // Auto-refresh every 3 minutes
+    retry: 2,
   });
 }
 
@@ -97,7 +97,8 @@ export function useSparklines(tickers: string[]) {
       }
     },
     enabled: tickers.length > 0,
-    staleTime: 10 * 60 * 1000, // 10 minutes — sparklines don't change fast
-    retry: 1,
+    staleTime: 30 * 60 * 1000, // 30 minutes — matches server sparkline cache
+    gcTime: 60 * 60 * 1000,
+    retry: 2,
   });
 }
