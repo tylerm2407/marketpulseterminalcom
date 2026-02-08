@@ -45,8 +45,8 @@ export default function StockDossier() {
           <AlertCircle className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground mb-2">Stock Not Found</h1>
           <p className="text-muted-foreground mb-6">
-            No data available for ticker "{ticker}".
-            {isError && <span className="block mt-1 text-sm">Error: {(error as Error)?.message}</span>}
+            No data available for ticker "{ticker}". Make sure it's listed on NASDAQ or NYSE.
+            {isError && <span className="block mt-1 text-sm text-destructive">Error: {(error as Error)?.message}</span>}
           </p>
           <Link to="/">
             <Button variant="outline"><ArrowLeft className="h-4 w-4 mr-2" /> Back to Search</Button>
