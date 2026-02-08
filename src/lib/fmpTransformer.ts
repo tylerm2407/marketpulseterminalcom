@@ -404,8 +404,8 @@ export function transformFMPSearch(raw: any[]): SearchResult[] {
   if (!Array.isArray(raw)) return [];
 
   return raw
-    .filter((r) => r.exchangeShortName && ['NASDAQ', 'NYSE', 'AMEX', 'TSX'].includes(r.exchangeShortName))
-    .slice(0, 8)
+    .filter((r) => r.exchangeShortName && ['NASDAQ', 'NYSE', 'AMEX'].includes(r.exchangeShortName))
+    .slice(0, 10)
     .map((r) => ({
       ticker: r.symbol,
       name: r.name,

@@ -36,7 +36,7 @@ const Index = () => {
             <SearchBar variant="hero" />
           </div>
           <p className="text-xs text-primary-foreground/40 mt-4">
-            Try: AAPL, MSFT, NVDA, GOOGL, AMZN, TSLA
+            Search any NASDAQ or NYSE-listed stock by ticker or company name
           </p>
         </div>
         {/* Live ticker marquee */}
