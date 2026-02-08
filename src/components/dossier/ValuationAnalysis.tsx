@@ -14,7 +14,7 @@ export function ValuationAnalysis({ stock }: { stock: StockData }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
         <MetricCard label="P/E" value={valuation.pe} subtitle={`Fwd: ${valuation.forwardPe.toFixed(1)}`} />
         <MetricCard label="P/S" value={valuation.ps} subtitle={`Sector: ${valuation.sectorMedian.ps.toFixed(1)}`} />
         <MetricCard label="P/B" value={valuation.pb} subtitle={`Sector: ${valuation.sectorMedian.pb.toFixed(1)}`} />
@@ -22,8 +22,8 @@ export function ValuationAnalysis({ stock }: { stock: StockData }) {
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-3">Valuation vs Sector Median</h3>
-        <div className="h-56">
+        <h3 className="text-xs sm:text-sm font-semibold text-foreground mb-3">Valuation vs Sector Median</h3>
+        <div className="h-44 sm:h-56">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={multiplesData} barGap={4}>
               <XAxis dataKey="metric" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />

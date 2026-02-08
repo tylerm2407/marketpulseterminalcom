@@ -42,7 +42,7 @@ export function RiskFramework({ stock }: { stock: StockData }) {
             {risks.map((risk, i) => {
               const { icon: Icon, label } = categoryConfig[risk.category];
               return (
-                <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border">
+                <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border active:bg-muted/50 transition-colors">
                   <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                   <div>
                     <div className="flex items-center gap-2">
