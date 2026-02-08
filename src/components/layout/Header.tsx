@@ -1,8 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, Eye, Home, Newspaper } from 'lucide-react';
+import { BarChart3, Eye, Home, Newspaper, Sun, Moon } from 'lucide-react';
 import { SearchBar } from '@/components/search/SearchBar';
 import { useWatchlistStore } from '@/stores/watchlistStore';
+import { useTheme } from '@/hooks/useTheme';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const navLinks = [
   { label: 'Home', path: '/', icon: Home },
@@ -13,6 +16,7 @@ const navLinks = [
 export function Header() {
   const { tickers } = useWatchlistStore();
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="sticky top-0 z-50 hero-gradient text-primary-foreground border-b border-primary-foreground/10">
@@ -47,6 +51,22 @@ export function Header() {
               </Link>
             );
           })}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="h-8 w-8 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+              >
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            </TooltipContent>
+          </Tooltip>
         </nav>
       </div>
     </header>
