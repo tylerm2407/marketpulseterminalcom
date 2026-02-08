@@ -14,13 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      api_cache: {
+        Row: {
+          cache_key: string
+          cached_at: string
+          data: Json
+          expires_at: string
+        }
+        Insert: {
+          cache_key: string
+          cached_at?: string
+          data: Json
+          expires_at: string
+        }
+        Update: {
+          cache_key?: string
+          cached_at?: string
+          data?: Json
+          expires_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_expired_cache: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never
