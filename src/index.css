@@ -129,6 +129,15 @@
     );
   }
 
+  .dark .hero-gradient {
+    background: linear-gradient(
+      145deg,
+      hsl(220 30% 8%) 0%,
+      hsl(220 25% 12%) 50%,
+      hsl(210 25% 10%) 100%
+    );
+  }
+
   .gain-glow {
     box-shadow: 0 0 12px hsl(var(--gain) / 0.2);
   }
