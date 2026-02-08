@@ -34,13 +34,13 @@ export function PriceChart({ stock }: { stock: StockData }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 overflow-x-auto pb-1 -mx-1 px-1">
         {ranges.map(r => (
           <Button
             key={r}
             variant={range === r ? 'default' : 'ghost'}
             size="sm"
-            className={`h-7 px-3 text-xs ${range === r ? 'bg-primary text-primary-foreground' : ''}`}
+            className={`h-9 sm:h-7 px-4 sm:px-3 text-xs touch-manipulation shrink-0 ${range === r ? 'bg-primary text-primary-foreground' : ''}`}
             onClick={() => setRange(r)}
           >
             {r}
@@ -48,7 +48,7 @@ export function PriceChart({ stock }: { stock: StockData }) {
         ))}
       </div>
 
-      <div className="h-64">
+      <div className="h-52 sm:h-64">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={priceData}>
             <defs>

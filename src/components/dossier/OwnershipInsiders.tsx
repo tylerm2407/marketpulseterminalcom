@@ -17,7 +17,8 @@ export function OwnershipInsiders({ stock }: { stock: StockData }) {
             </Badge>
           )}
         </div>
-        <div className="overflow-x-auto">
+        {/* Mobile: card layout / Desktop: table */}
+        <div className="hidden sm:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -43,12 +44,32 @@ export function OwnershipInsiders({ stock }: { stock: StockData }) {
             </TableBody>
           </Table>
         </div>
+        <div className="sm:hidden space-y-2">
+          {stock.institutionalHolders.map((h, i) => (
+            <div key={i} className="p-3 rounded-lg bg-muted/30 border border-border">
+              <div className="text-xs font-medium text-foreground mb-1.5">{h.name}</div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                <span className="text-muted-foreground">Shares</span>
+                <span className="text-right font-mono text-foreground">{formatCompactNumber(h.shares)}</span>
+                <span className="text-muted-foreground">% Owned</span>
+                <span className="text-right font-mono text-foreground">{h.percentOwnership.toFixed(1)}%</span>
+                <span className="text-muted-foreground">Change</span>
+                <span className={`text-right font-mono ${h.change > 0 ? 'text-gain' : h.change < 0 ? 'text-loss' : 'text-foreground'}`}>
+                  {formatPercent(h.change)}
+                </span>
+                <span className="text-muted-foreground">Value</span>
+                <span className="text-right font-mono text-foreground">{formatLargeNumber(h.value)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {stock.insiderTransactions.length > 0 && (
         <div>
           <h3 className="text-sm font-semibold text-foreground mb-3">Recent Insider Transactions</h3>
-          <div className="overflow-x-auto">
+          {/* Desktop table */}
+          <div className="hidden sm:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -79,6 +100,30 @@ export function OwnershipInsiders({ stock }: { stock: StockData }) {
                 ))}
               </TableBody>
             </Table>
+          </div>
+          {/* Mobile cards */}
+          <div className="sm:hidden space-y-2">
+            {stock.insiderTransactions.map((t, i) => (
+              <div key={i} className="p-3 rounded-lg bg-muted/30 border border-border">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-medium text-foreground">{t.name}</span>
+                  <Badge variant="outline" className={`text-[10px] ${t.type === 'buy' ? 'text-gain border-gain/30' : t.type === 'sell' ? 'text-loss border-loss/30' : ''}`}>
+                    {t.type}
+                  </Badge>
+                </div>
+                <div className="text-[10px] text-muted-foreground mb-1.5">{t.title}</div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                  <span className="text-muted-foreground">Shares</span>
+                  <span className="text-right font-mono text-foreground">{formatNumber(t.shares)}</span>
+                  <span className="text-muted-foreground">Price</span>
+                  <span className="text-right font-mono text-foreground">${t.price.toFixed(2)}</span>
+                  <span className="text-muted-foreground">Value</span>
+                  <span className="text-right font-mono text-foreground">{formatLargeNumber(t.value)}</span>
+                  <span className="text-muted-foreground">Date</span>
+                  <span className="text-right font-mono text-foreground">{t.date}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

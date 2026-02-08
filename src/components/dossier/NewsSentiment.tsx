@@ -21,27 +21,35 @@ export function NewsSentiment({ stock }: { stock: StockData }) {
   return (
     <div className="space-y-3">
       {stock.news.map((item, i) => (
-        <div key={i} className="flex gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors group border border-transparent hover:border-border">
-          <div className="text-xs text-muted-foreground whitespace-nowrap pt-0.5 w-20 shrink-0 font-mono">
-            {item.date}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start gap-2">
-              <h4 className="text-sm font-medium text-foreground leading-snug">{item.title}</h4>
-              <a href={item.url} target="_blank" rel="noopener noreferrer" className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-              </a>
+        <a
+          key={i}
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block p-3 sm:p-3 rounded-lg hover:bg-muted/50 active:bg-muted/70 transition-colors group border border-transparent hover:border-border touch-manipulation"
+        >
+          <div className="flex flex-col sm:flex-row sm:gap-4">
+            <div className="flex items-center gap-2 sm:block sm:w-20 sm:shrink-0 mb-1 sm:mb-0">
+              <span className="text-[10px] sm:text-xs text-muted-foreground font-mono">{item.date}</span>
+              <span className="text-[10px] text-muted-foreground sm:hidden">·</span>
+              <span className="text-[10px] text-muted-foreground sm:hidden">{item.source}</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.summary}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0">{categoryLabels[item.category]}</Badge>
-              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${sentimentColors[item.sentiment]}`}>
-                {item.sentiment}
-              </Badge>
-              <span className="text-[10px] text-muted-foreground">{item.source}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-2">
+                <h4 className="text-sm font-medium text-foreground leading-snug">{item.title}</h4>
+                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5 opacity-50 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">{item.summary}</p>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">{categoryLabels[item.category]}</Badge>
+                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${sentimentColors[item.sentiment]}`}>
+                  {item.sentiment}
+                </Badge>
+                <span className="text-[10px] text-muted-foreground hidden sm:inline">{item.source}</span>
+              </div>
             </div>
           </div>
-        </div>
+        </a>
       ))}
       <p className="text-xs text-muted-foreground italic mt-2">
         Sentiment reflects aggregated tone of coverage, not a recommendation.

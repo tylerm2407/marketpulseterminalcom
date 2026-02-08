@@ -60,7 +60,7 @@ export default function StockDossier() {
   return (
     <div className="min-h-screen bg-background pb-16 sm:pb-0">
       <Header />
-      <main className="container mx-auto px-4 py-6 max-w-5xl">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-5xl">
         {/* Live data indicator */}
         <div className="flex items-center gap-2 mb-3">
           <Badge variant="outline" className={`text-[10px] ${isLiveData ? 'text-gain border-gain/30' : 'text-warning border-warning/30'}`}>

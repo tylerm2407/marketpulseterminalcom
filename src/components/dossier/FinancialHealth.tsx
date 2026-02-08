@@ -31,10 +31,10 @@ export function FinancialHealth({ stock }: { stock: StockData }) {
         </TabsList>
       </Tabs>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <div>
-          <h3 className="text-sm font-semibold text-foreground mb-3">Revenue & Net Income ($B)</h3>
-          <div className="h-48">
+          <h3 className="text-xs sm:text-sm font-semibold text-foreground mb-3">Revenue & Net Income ($B)</h3>
+          <div className="h-40 sm:h-48">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={revenueChart} barGap={4}>
                 <XAxis dataKey="period" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
@@ -47,8 +47,8 @@ export function FinancialHealth({ stock }: { stock: StockData }) {
           </div>
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-foreground mb-3">Margin Trends (%)</h3>
-          <div className="h-48">
+          <h3 className="text-xs sm:text-sm font-semibold text-foreground mb-3">Margin Trends (%)</h3>
+          <div className="h-40 sm:h-48">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={marginChart}>
                 <XAxis dataKey="period" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
@@ -62,8 +62,8 @@ export function FinancialHealth({ stock }: { stock: StockData }) {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <Table>
+      <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+        <Table className="min-w-[500px]">
           <TableHeader>
             <TableRow>
               <TableHead className="text-xs">Metric</TableHead>

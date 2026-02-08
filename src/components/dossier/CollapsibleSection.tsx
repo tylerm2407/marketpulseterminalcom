@@ -15,15 +15,15 @@ export function CollapsibleSection({ title, children, defaultOpen = false, quick
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="bg-card rounded-lg border border-border card-elevated animate-fade-in">
-      <CollapsibleTrigger className="flex items-center justify-between w-full px-6 py-4 hover:bg-muted/50 transition-colors rounded-t-lg text-left">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform duration-200', isOpen && 'rotate-180')} />
+      <CollapsibleTrigger className="flex items-center justify-between w-full px-4 sm:px-6 py-4 min-h-[48px] hover:bg-muted/50 active:bg-muted/70 transition-colors rounded-t-lg text-left touch-manipulation">
+        <h2 className="text-sm sm:text-base font-semibold text-foreground">{title}</h2>
+        <ChevronDown className={cn('h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground transition-transform duration-200 shrink-0 ml-2', isOpen && 'rotate-180')} />
       </CollapsibleTrigger>
       {!isOpen && quickBrief && (
-        <div className="px-6 pb-4 -mt-1 text-sm text-muted-foreground">{quickBrief}</div>
+        <div className="px-4 sm:px-6 pb-3 sm:pb-4 -mt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed">{quickBrief}</div>
       )}
       <CollapsibleContent>
-        <div className="px-6 pb-6 pt-2 border-t border-border">{children}</div>
+        <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 border-t border-border overflow-x-hidden">{children}</div>
       </CollapsibleContent>
     </Collapsible>
   );
