@@ -1,10 +1,13 @@
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { TickerMarquee } from '@/components/TickerMarquee';
-import { Newspaper, ExternalLink, Loader2 } from 'lucide-react';
+import { Newspaper, ExternalLink, Loader2, Sparkles } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import { LatestBuzz } from '@/components/dossier/LatestBuzz';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface NewsItem {
   title: string;
@@ -77,11 +80,39 @@ function formatRelativeDate(dateStr: string): string {
 export default function News() {
   const { data: news, isLoading } = useMarketNews();
 
+  const [selectedBuzzTicker, setSelectedBuzzTicker] = useState<string | null>(null);
+
   return (
     <div className="min-h-screen bg-background pb-16 sm:pb-0">
       <Header />
       <TickerMarquee />
       <main className="container mx-auto px-4 py-8 max-w-3xl">
+        {/* Latest Buzz Section */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="h-5 w-5 text-accent" />
+            <h2 className="text-lg font-bold text-foreground">Latest Buzz</h2>
+          </div>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {trendingTickers.map((t) => (
+              <Button
+                key={t}
+                variant={selectedBuzzTicker === t ? 'default' : 'outline'}
+                size="sm"
+                className="text-xs font-mono"
+                onClick={() => setSelectedBuzzTicker(selectedBuzzTicker === t ? null : t)}
+              >
+                {t}
+              </Button>
+            ))}
+          </div>
+          {selectedBuzzTicker && (
+            <div className="bg-card rounded-lg border border-border card-elevated p-4">
+              <LatestBuzz ticker={selectedBuzzTicker} companyName={selectedBuzzTicker} />
+            </div>
+          )}
+        </div>
+
         <div className="flex items-center gap-2 mb-6">
           <Newspaper className="h-5 w-5 text-accent" />
           <h1 className="text-2xl font-bold text-foreground">Trending News</h1>
