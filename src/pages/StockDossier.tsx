@@ -10,6 +10,7 @@ import { ValuationAnalysis } from '@/components/dossier/ValuationAnalysis';
 import { RiskFramework } from '@/components/dossier/RiskFramework';
 import { NewsSentiment } from '@/components/dossier/NewsSentiment';
 import { OwnershipInsiders } from '@/components/dossier/OwnershipInsiders';
+import { LatestBuzz } from '@/components/dossier/LatestBuzz';
 import { ArrowLeft, Loader2, AlertCircle, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -98,6 +99,9 @@ export default function StockDossier() {
               <NewsSentiment stock={stock} />
             </CollapsibleSection>
           )}
+          <CollapsibleSection title="Latest Buzz" quickBrief="AI-powered summary of recent tweets, news, and social media sentiment.">
+            <LatestBuzz ticker={stock.ticker} companyName={stock.name} />
+          </CollapsibleSection>
           {(stock.institutionalHolders.length > 0 || stock.insiderTransactions.length > 0) && (
             <CollapsibleSection title="Ownership & Insider Activity" quickBrief={`Short interest: ${stock.shortInterest}%. ${stock.insiderTransactions.length} insider transactions.`}>
               <OwnershipInsiders stock={stock} />
