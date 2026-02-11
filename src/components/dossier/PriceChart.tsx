@@ -11,7 +11,7 @@ export function PriceChart({ stock }: { stock: StockData }) {
 
   const filteredData = useMemo(() => {
     const data = stock.priceHistory;
-    const now = new Date('2026-02-06');
+    const now = new Date();
     const cutoffMap: Record<TimeRange, number> = {
       '1M': 30,
       '3M': 90,

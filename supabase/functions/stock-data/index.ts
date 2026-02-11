@@ -145,7 +145,7 @@ async function fetchDossier(ticker: string, apiKey: string) {
     fetchFMP('balance-sheet-statement', { ...sym, period: 'quarter', limit: '4' }, apiKey),
     fetchFMP('cash-flow-statement', { ...sym, period: 'annual', limit: '3' }, apiKey),
     fetchFMP('cash-flow-statement', { ...sym, period: 'quarter', limit: '4' }, apiKey),
-    fetchFMP('historical-price-eod/full', { ...sym, from: getDateNDaysAgo(365), to: getToday() }, apiKey),
+    fetchFMP('historical-price-eod/full', { ...sym, from: getDateNDaysAgo(1825), to: getToday() }, apiKey),
     fetchFMP('stock-news', { tickers: ticker, limit: '10' }, apiKey),
     fetchFMP('institutional-holder', sym, apiKey),
     fetchFMP('insider-trading', sym, apiKey),
