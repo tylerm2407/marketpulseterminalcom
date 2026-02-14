@@ -14,7 +14,7 @@ export function SearchBar({ variant = 'header' }: { variant?: 'header' | 'hero' 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('stockdossier-recent');
+      const saved = localStorage.getItem('marketpulse-recent');
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
@@ -57,7 +57,7 @@ export function SearchBar({ variant = 'header' }: { variant?: 'header' | 'hero' 
     setIsOpen(false);
     const updated = [ticker, ...recentSearches.filter(t => t !== ticker)].slice(0, 5);
     setRecentSearches(updated);
-    localStorage.setItem('stockdossier-recent', JSON.stringify(updated));
+    localStorage.setItem('marketpulse-recent', JSON.stringify(updated));
     navigate(`/stock/${ticker}`);
   };
 

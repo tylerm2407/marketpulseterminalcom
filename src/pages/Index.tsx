@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { BarChart3, ArrowUp, ArrowDown, Shield, Search, TrendingUp, FileText, Eye } from 'lucide-react';
+import { BarChart3, ArrowUp, ArrowDown, Shield, Search, TrendingUp, FileText, Eye, Star } from 'lucide-react';
 import { SearchBar } from '@/components/search/SearchBar';
 import { Footer } from '@/components/layout/Footer';
 import { TickerMarquee } from '@/components/TickerMarquee';
@@ -8,12 +8,14 @@ import { stocksList } from '@/data/mockStocks';
 import { useWatchlistQuotes, useSparklines } from '@/hooks/useStockData';
 import { formatCurrency, formatPercent, formatLargeNumber } from '@/lib/formatters';
 import { Badge } from '@/components/ui/badge';
+import { useWatchlistStore } from '@/stores/watchlistStore';
 
 const EXPLORE_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'TSLA'];
 
 const Index = () => {
   const { data: liveQuotes } = useWatchlistQuotes(EXPLORE_TICKERS);
   const { data: sparklines } = useSparklines(EXPLORE_TICKERS);
+  const { addTicker, removeTicker, isWatching } = useWatchlistStore();
   const quoteMap = new Map((liveQuotes || []).map(q => [q.ticker, q]));
   const sparkMap = new Map((sparklines || []).map(s => [s.symbol, s.prices]));
   const trendingStocks = stocksList.slice(0, 6);
@@ -26,7 +28,7 @@ const Index = () => {
           <div className="flex items-center justify-center gap-2.5 mb-6">
             <BarChart3 className="h-8 w-8 text-accent" />
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-              Stock<span className="text-accent">Dossier</span>
+              Market<span className="text-accent">Pulse</span>
             </h1>
           </div>
           <p className="text-lg text-primary-foreground/80 mb-8 leading-relaxed max-w-xl mx-auto">
@@ -59,9 +61,21 @@ const Index = () => {
               <Link
                 key={stock.ticker}
                 to={`/stock/${stock.ticker}`}
-                className="bg-card rounded-lg border border-border card-elevated p-4 hover:border-accent/40 transition-all duration-200 group"
+                className="bg-card rounded-lg border border-border card-elevated p-4 hover:border-accent/40 transition-all duration-200 group relative"
               >
-                <div className="flex items-center justify-between mb-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isWatching(stock.ticker) ? removeTicker(stock.ticker) : addTicker(stock.ticker);
+                  }}
+                  className="absolute top-3 right-3 z-10 p-1 rounded-full hover:bg-muted transition-colors"
+                  aria-label={isWatching(stock.ticker) ? 'Remove from watchlist' : 'Add to watchlist'}
+                >
+                  <Star className={`h-4 w-4 transition-colors ${isWatching(stock.ticker) ? 'fill-accent text-accent' : 'text-muted-foreground hover:text-accent'}`} />
+                </button>
+                <div className="flex items-center justify-between mb-2 pr-6">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-foreground font-mono group-hover:text-accent transition-colors">{stock.ticker}</span>
                     <Badge variant="outline" className="text-[10px]">{stock.sector}</Badge>
