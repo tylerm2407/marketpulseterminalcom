@@ -1,4 +1,3 @@
-import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { TickerMarquee } from '@/components/TickerMarquee';
 import { Newspaper, ExternalLink, Loader2, Sparkles } from 'lucide-react';
@@ -84,7 +83,7 @@ export default function News() {
 
   return (
     <div className="min-h-screen bg-background pb-16 sm:pb-0">
-      <Header />
+      
       <TickerMarquee />
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         {/* Latest Buzz Section */}

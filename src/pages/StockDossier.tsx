@@ -1,5 +1,4 @@
 import { useParams, Link } from 'react-router-dom';
-import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { DossierHeader } from '@/components/dossier/DossierHeader';
 import { CollapsibleSection } from '@/components/dossier/CollapsibleSection';
@@ -29,7 +28,6 @@ export default function StockDossier() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background pb-16 sm:pb-0">
-        <Header />
         <main className="container mx-auto px-4 py-6 max-w-5xl">
           <DossierSkeleton />
         </main>
@@ -41,7 +39,6 @@ export default function StockDossier() {
   if (!stock) {
     return (
       <div className="min-h-screen bg-background pb-16 sm:pb-0">
-        <Header />
         <main className="container mx-auto px-4 py-16 text-center">
           <AlertCircle className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground mb-2">Stock Not Found</h1>
@@ -60,7 +57,6 @@ export default function StockDossier() {
 
   return (
     <div className="min-h-screen bg-background pb-16 sm:pb-0">
-      <Header />
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-5xl">
         {/* Live data indicator */}
         <div className="flex items-center gap-2 mb-3">

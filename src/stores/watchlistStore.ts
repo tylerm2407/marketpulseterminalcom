@@ -32,6 +32,6 @@ export const useWatchlistStore = create<WatchlistState>()(
       setDailySummary: (enabled) => set({ dailySummaryEnabled: enabled }),
       setWeeklySummary: (enabled) => set({ weeklySummaryEnabled: enabled }),
     }),
-    { name: 'stockdossier-watchlist' }
+    { name: 'marketpulse-watchlist' }
   )
 );

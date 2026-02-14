@@ -5,7 +5,7 @@ type Theme = 'light' | 'dark';
 function getInitialTheme(): Theme {
   if (typeof window === 'undefined') return 'light';
   try {
-    const stored = localStorage.getItem('stockdossier-theme');
+    const stored = localStorage.getItem('marketpulse-theme');
     if (stored === 'dark' || stored === 'light') return stored;
   } catch {}
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -18,7 +18,7 @@ export function useTheme() {
     const root = document.documentElement;
     root.classList.toggle('dark', theme === 'dark');
     try {
-      localStorage.setItem('stockdossier-theme', theme);
+      localStorage.setItem('marketpulse-theme', theme);
     } catch {}
   }, [theme]);
 
