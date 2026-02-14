@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, Eye, Home, Newspaper, Sun, Moon } from 'lucide-react';
+import { BarChart3, Eye, Home, Newspaper, Sun, Moon, Search, X } from 'lucide-react';
 import { SearchBar } from '@/components/search/SearchBar';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { useTheme } from '@/hooks/useTheme';
@@ -17,6 +18,7 @@ export function Header() {
   const { tickers } = useWatchlistStore();
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 hero-gradient text-primary-foreground border-b border-primary-foreground/10">
@@ -29,6 +31,16 @@ export function Header() {
           <SearchBar variant="header" />
         </div>
         <nav className="flex items-center gap-1 sm:gap-3 shrink-0">
+          {/* Mobile search toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileSearchOpen(prev => !prev)}
+            className="h-8 w-8 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 md:hidden"
+          >
+            {mobileSearchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+            <span className="sr-only">Toggle search</span>
+          </Button>
           {navLinks.map(({ label, path, icon: Icon }) => {
             const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
             return (
@@ -69,6 +81,12 @@ export function Header() {
           </Tooltip>
         </nav>
       </div>
+      {/* Mobile search dropdown */}
+      {mobileSearchOpen && (
+        <div className="md:hidden px-4 pb-3">
+          <SearchBar variant="header" />
+        </div>
+      )}
     </header>
   );
 }
