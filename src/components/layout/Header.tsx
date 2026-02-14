@@ -25,7 +25,7 @@ export function Header() {
       <div className="container mx-auto px-4 h-14 flex items-center gap-4">
         <Link to="/" className="flex items-center gap-2 font-bold text-lg shrink-0 tracking-tight">
           <BarChart3 className="h-5 w-5 text-accent" />
-          <span className="hidden sm:inline">Stock<span className="text-accent">Dossier</span></span>
+          <span className="hidden sm:inline">Market<span className="text-accent">Pulse</span></span>
         </Link>
         <div className="flex-1 max-w-lg mx-auto hidden md:block">
           <SearchBar variant="header" />
