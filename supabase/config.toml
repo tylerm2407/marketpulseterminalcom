@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.stock-buzz]
 verify_jwt = false
+
+[functions.watchlist-summary]
+verify_jwt = false
