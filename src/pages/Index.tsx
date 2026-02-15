@@ -47,7 +47,10 @@ const Index = () => {
 
       {/* Trending */}
       <section className="container mx-auto px-4 py-12 max-w-5xl">
-        <h2 className="text-lg font-semibold text-foreground mb-6">Explore Stocks</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold text-foreground">Explore Stocks</h2>
+          <span className="text-[10px] sm:text-xs text-muted-foreground">All price data is delayed ~15 minutes</span>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {trendingStocks.map(stock => {
             const live = quoteMap.get(stock.ticker);
