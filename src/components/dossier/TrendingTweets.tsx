@@ -32,8 +32,11 @@ async function fetchTweets(ticker: string, companyName: string) {
   return data as { tweets: Tweet[]; generatedAt: string };
 }
 
+type SentimentFilter = 'all' | 'bullish' | 'bearish' | 'neutral';
+
 export function TrendingTweets({ ticker, companyName }: TrendingTweetsProps) {
   const [enabled, setEnabled] = useState(false);
+  const [sentimentFilter, setSentimentFilter] = useState<SentimentFilter>('all');
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['stock-tweets', ticker],
@@ -96,9 +99,9 @@ export function TrendingTweets({ ticker, companyName }: TrendingTweetsProps) {
     );
   }
 
-  const tweets = data?.tweets || [];
+  const allTweets = data?.tweets || [];
 
-  if (tweets.length === 0) {
+  if (allTweets.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-6 gap-2">
         <Twitter className="h-6 w-6 text-muted-foreground/40" />
@@ -107,12 +110,52 @@ export function TrendingTweets({ ticker, companyName }: TrendingTweetsProps) {
     );
   }
 
+  const filteredTweets = sentimentFilter === 'all'
+    ? allTweets
+    : allTweets.filter((t) => t.sentiment === sentimentFilter);
+
+  const sentimentCounts = {
+    all: allTweets.length,
+    bullish: allTweets.filter((t) => t.sentiment === 'bullish').length,
+    bearish: allTweets.filter((t) => t.sentiment === 'bearish').length,
+    neutral: allTweets.filter((t) => t.sentiment === 'neutral').length,
+  };
+
+  const filterButtons: { value: SentimentFilter; label: string; icon: typeof TrendingUp; activeClass: string }[] = [
+    { value: 'all', label: 'All', icon: Twitter, activeClass: 'bg-primary text-primary-foreground' },
+    { value: 'bullish', label: 'Bullish', icon: TrendingUp, activeClass: 'bg-gain/15 text-gain border-gain/40' },
+    { value: 'bearish', label: 'Bearish', icon: TrendingDown, activeClass: 'bg-loss/15 text-loss border-loss/40' },
+    { value: 'neutral', label: 'Neutral', icon: Minus, activeClass: 'bg-muted text-muted-foreground' },
+  ];
+
   return (
     <div className="space-y-3">
-      <div className="space-y-3">
-        {tweets.map((tweet, i) => (
-          <TweetCard key={i} tweet={tweet} />
+      {/* Sentiment filter bar */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {filterButtons.map(({ value, label, icon: Icon, activeClass }) => (
+          <Button
+            key={value}
+            variant="outline"
+            size="sm"
+            onClick={() => setSentimentFilter(value)}
+            className={`h-7 text-xs gap-1 px-2.5 ${sentimentFilter === value ? activeClass : ''}`}
+          >
+            <Icon className="h-3 w-3" />
+            {label} ({sentimentCounts[value]})
+          </Button>
         ))}
+      </div>
+
+      <div className="space-y-3">
+        {filteredTweets.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No {sentimentFilter} tweets found.
+          </p>
+        ) : (
+          filteredTweets.map((tweet, i) => (
+            <TweetCard key={i} tweet={tweet} />
+          ))
+        )}
       </div>
       <div className="flex items-center justify-between pt-2 border-t border-border/50">
         <span className="text-[10px] text-muted-foreground">
