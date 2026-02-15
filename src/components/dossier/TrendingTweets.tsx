@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, Twitter, AlertCircle, ThumbsUp, Repeat2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { RefreshCw, Twitter, AlertCircle, ThumbsUp, Repeat2, TrendingUp, TrendingDown, Minus, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
@@ -249,15 +249,26 @@ function TweetCard({ tweet }: { tweet: Tweet }) {
         </div>
       </div>
       <p className="text-sm text-foreground/85 leading-relaxed mb-2">{tweet.content}</p>
-      <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <ThumbsUp className="h-3 w-3" />
-          {formatCount(tweet.likes)}
-        </span>
-        <span className="flex items-center gap-1">
-          <Repeat2 className="h-3 w-3" />
-          {formatCount(tweet.retweets)}
-        </span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <ThumbsUp className="h-3 w-3" />
+            {formatCount(tweet.likes)}
+          </span>
+          <span className="flex items-center gap-1">
+            <Repeat2 className="h-3 w-3" />
+            {formatCount(tweet.retweets)}
+          </span>
+        </div>
+        <a
+          href={`https://x.com/search?q=from%3A${tweet.username.replace('@', '')}+${encodeURIComponent(tweet.content.slice(0, 40))}&src=typed_query&f=top`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          View on X
+          <ExternalLink className="h-3 w-3" />
+        </a>
       </div>
     </div>
   );
