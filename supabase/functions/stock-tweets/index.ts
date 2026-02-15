@@ -1,10 +1,56 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const CACHE_TTL_SECONDS = 15 * 60; // 15 minutes
+
+function getSupabaseAdmin() {
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceKey) return null;
+  return createClient(url, serviceKey);
+}
+
+async function getFromCache(key: string): Promise<any | null> {
+  try {
+    const sb = getSupabaseAdmin();
+    if (!sb) return null;
+    const { data, error } = await sb
+      .from("api_cache")
+      .select("data, expires_at")
+      .eq("cache_key", key)
+      .single();
+    if (error || !data) return null;
+    if (new Date(data.expires_at) < new Date()) {
+      sb.from("api_cache").delete().eq("cache_key", key).then(() => {});
+      return null;
+    }
+    console.log(`Cache HIT: ${key}`);
+    return data.data;
+  } catch {
+    return null;
+  }
+}
+
+async function setCache(key: string, data: any): Promise<void> {
+  try {
+    const sb = getSupabaseAdmin();
+    if (!sb) return;
+    const expiresAt = new Date(Date.now() + CACHE_TTL_SECONDS * 1000).toISOString();
+    await sb.from("api_cache").upsert(
+      { cache_key: key, data, cached_at: new Date().toISOString(), expires_at: expiresAt },
+      { onConflict: "cache_key" }
+    );
+    console.log(`Cache SET: ${key} (TTL ${CACHE_TTL_SECONDS}s)`);
+  } catch (err) {
+    console.warn("Cache write failed:", err);
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -20,12 +66,23 @@ serve(async (req) => {
       });
     }
 
+    const upperTicker = ticker.toUpperCase();
+    const cacheKey = `tweets:${upperTicker}`;
+
+    // Check cache first
+    const cached = await getFromCache(cacheKey);
+    if (cached) {
+      return new Response(JSON.stringify(cached), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const GROK_API_KEY = Deno.env.get("GROK_API_KEY");
     if (!GROK_API_KEY) {
       throw new Error("GROK_API_KEY is not configured");
     }
 
-    const prompt = `Search X (Twitter) for the most relevant and trending tweets about ${companyName || ticker} (ticker: $${ticker}) from the last 48 hours.
+    const prompt = `Search X (Twitter) for the most relevant and trending tweets about ${companyName || upperTicker} (ticker: $${upperTicker}) from the last 48 hours.
 
 Return EXACTLY 5-8 tweets in this JSON format (no markdown, no code fences, just raw JSON):
 [
@@ -42,7 +99,7 @@ Return EXACTLY 5-8 tweets in this JSON format (no markdown, no code fences, just
 
 Focus on tweets from:
 - Financial analysts and traders
-- News accounts covering $${ticker}
+- News accounts covering $${upperTicker}
 - Popular finance influencers
 - Any viral tweets about the stock
 
@@ -90,7 +147,6 @@ Prioritize tweets with high engagement (likes/retweets). Include the actual twee
     const data = await response.json();
     const rawContent = data.choices?.[0]?.message?.content || "[]";
 
-    // Parse the JSON response, stripping any markdown fences if present
     let tweets: any[] = [];
     try {
       const cleaned = rawContent.replace(/```json?\n?/g, "").replace(/```\n?/g, "").trim();
@@ -100,10 +156,16 @@ Prioritize tweets with high engagement (likes/retweets). Include the actual twee
       tweets = [];
     }
 
-    return new Response(
-      JSON.stringify({ tweets, generatedAt: new Date().toISOString() }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const result = { tweets, generatedAt: new Date().toISOString() };
+
+    // Cache if we got tweets
+    if (tweets.length > 0) {
+      await setCache(cacheKey, result);
+    }
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e) {
     console.error("stock-tweets error:", e);
     return new Response(
