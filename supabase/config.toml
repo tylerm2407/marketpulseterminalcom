@@ -1,5 +1,8 @@
 project_id = "tbfeefkmqpzdzubazums"
 
+[functions.risk-explain]
+verify_jwt = false
+
 [functions.stock-data]
 verify_jwt = false
 
