@@ -10,210 +10,184 @@ import type {
   RiskItem,
 } from '@/types/stock';
 
-interface FMPDossierResponse {
-  profile: any;
-  quote: any;
-  incomeAnnual: any[];
-  incomeQuarterly: any[];
-  balanceAnnual: any[];
-  balanceQuarterly: any[];
-  cashflowAnnual: any[];
-  cashflowQuarterly: any[];
-  priceHistory: any[];
+/**
+ * Polygon.io dossier response shape (from our edge function)
+ */
+interface PolygonDossierResponse {
+  profile: any;       // /v3/reference/tickers/{ticker} → results
+  snapshot: any;       // /v2/snapshot → ticker object
+  annualFinancials: any[];
+  quarterlyFinancials: any[];
+  priceHistory: any[]; // /v2/aggs bars array
   news: any[];
   holders: any[];
   insiders: any[];
-  keyMetrics: any[];
-  ratios: any[];
-  revenueSegments: any[];
-  geoSegments: any[];
 }
 
-export function transformFMPToStockData(raw: FMPDossierResponse): StockData {
-  const { profile, quote, keyMetrics, ratios } = raw;
+export function transformFMPToStockData(raw: PolygonDossierResponse): StockData {
+  const { profile, snapshot } = raw;
 
-  if (!profile || !quote) {
-    throw new Error('Missing essential profile or quote data from API');
+  if (!profile && !snapshot) {
+    throw new Error('Missing essential profile or snapshot data from API');
   }
 
-  const km = keyMetrics?.[0] || {};
-  const r = ratios?.[0] || {};
+  // Extract price data from snapshot
+  const lastTrade = snapshot?.lastTrade || snapshot?.last_trade || {};
+  const prevDay = snapshot?.prevDay || snapshot?.prev_day || {};
+  const todaysDay = snapshot?.day || {};
+  const min = snapshot?.min || {};
 
-  const pe = quote.pe || km.peRatio || 0;
-  const ps = km.priceToSalesRatio || km.priceSalesRatio || 0;
-  const pb = km.pbRatio || km.priceToBookRatio || 0;
-  const evEbitda = km.enterpriseValueOverEBITDA || 0;
+  const price = lastTrade.p || todaysDay.c || 0;
+  const prevClose = prevDay.c || price;
+  const change = snapshot?.todaysChange ?? (price - prevClose);
+  const changePercent = snapshot?.todaysChangePerc ?? (prevClose ? ((price - prevClose) / prevClose) * 100 : 0);
 
-  // Calculate historical averages from key metrics
-  const historicalKm = keyMetrics || [];
-  const avgPe = historicalKm.length > 0
-    ? historicalKm.reduce((s: number, k: any) => s + (k.peRatio || 0), 0) / historicalKm.length
-    : pe;
-  const avgPs = historicalKm.length > 0
-    ? historicalKm.reduce((s: number, k: any) => s + (k.priceToSalesRatio || k.priceSalesRatio || 0), 0) / historicalKm.length
-    : ps;
-  const avgPb = historicalKm.length > 0
-    ? historicalKm.reduce((s: number, k: any) => s + (k.pbRatio || k.priceToBookRatio || 0), 0) / historicalKm.length
-    : pb;
+  // Extract financial data
+  const annualFinancials = mapPolygonFinancials(raw.annualFinancials, 'annual');
+  const quarterlyFinancials = mapPolygonFinancials(raw.quarterlyFinancials, 'quarterly');
 
-  const valuation: ValuationData = {
-    pe,
-    forwardPe: km.forwardPE || pe * 0.85,
-    ps,
-    pb,
-    evEbitda,
-    pegRatio: km.pegRatio || 0,
-    sectorMedian: { pe: 20, ps: 3, pb: 3, evEbitda: 12 },
-    historical5y: { avgPe, avgPs, avgPb },
-  };
+  // Build valuation from financials
+  const valuation = buildValuation(profile, price, annualFinancials);
 
-  const annualFinancials = mapFinancialPeriods(
-    raw.incomeAnnual,
-    raw.balanceAnnual,
-    raw.cashflowAnnual,
-    'annual'
-  );
-  const quarterlyFinancials = mapFinancialPeriods(
-    raw.incomeQuarterly,
-    raw.balanceQuarterly,
-    raw.cashflowQuarterly,
-    'quarterly'
-  );
-
-  const revenueSegments = parseSegments(raw.revenueSegments);
-  const geoSegments = parseSegments(raw.geoSegments);
-
-  const risks = generateRisks(profile, quote, km, annualFinancials);
-
-  const dividendYield = profile.lastDiv
-    ? (profile.lastDiv / quote.price) * 100
-    : 0;
+  const risks = generateRisks(profile, { price, change, changePercent, prevClose }, annualFinancials);
 
   // Calculate data completeness
-  let completeness = 40; // base for having profile + quote
-  if (raw.incomeAnnual?.length) completeness += 15;
-  if (raw.balanceAnnual?.length) completeness += 10;
-  if (raw.cashflowAnnual?.length) completeness += 10;
+  let completeness = 30;
+  if (profile) completeness += 20;
+  if (snapshot) completeness += 15;
+  if (raw.annualFinancials?.length) completeness += 15;
   if (raw.priceHistory?.length) completeness += 10;
   if (raw.news?.length) completeness += 5;
-  if (raw.holders?.length) completeness += 5;
-  if (raw.insiders?.length) completeness += 3;
-  if (keyMetrics?.length) completeness += 2;
+  if (raw.quarterlyFinancials?.length) completeness += 5;
 
   const now = new Date();
   const lastUpdated = `${now.toISOString().split('T')[0]} ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })}`;
 
+  // Map exchange codes
+  const exchangeMap: Record<string, string> = {
+    XNAS: 'NASDAQ', XNYS: 'NYSE', XASE: 'AMEX', ARCX: 'NYSE',
+  };
+
   return {
-    ticker: profile.symbol || quote.symbol,
-    name: profile.companyName || quote.name,
-    exchange: profile.exchangeShortName || quote.exchange || '',
-    sector: profile.sector || '',
-    industry: profile.industry || '',
-    price: quote.price,
-    previousClose: quote.previousClose || quote.price - quote.change,
-    change: quote.change || 0,
-    changePercent: quote.changesPercentage || 0,
-    marketCap: quote.marketCap || profile.mktCap || 0,
-    volume: quote.volume || 0,
-    avgVolume: quote.avgVolume || profile.volAvg || 0,
-    high52w: quote.yearHigh || 0,
-    low52w: quote.yearLow || 0,
-    beta: profile.beta || 0,
-    description: profile.description || '',
-    headquarters: [profile.city, profile.state, profile.country].filter(Boolean).join(', '),
-    founded: profile.ipoDate ? parseInt(profile.ipoDate.split('-')[0]) : 0,
-    employees: profile.fullTimeEmployees || 0,
-    ceo: profile.ceo || '',
-    website: profile.website || '',
-    revenueSegments,
-    geographicRevenue: geoSegments,
+    ticker: profile?.ticker || snapshot?.ticker || '',
+    name: profile?.name || '',
+    exchange: exchangeMap[profile?.primary_exchange] || profile?.primary_exchange || '',
+    sector: profile?.sic_description || '',
+    industry: profile?.sic_description || '',
+    price,
+    previousClose: prevClose,
+    change,
+    changePercent,
+    marketCap: profile?.market_cap || 0,
+    volume: todaysDay.v || 0,
+    avgVolume: 0, // Not directly available from Polygon snapshot
+    high52w: 0, // Would need separate aggregates call
+    low52w: 0,
+    beta: 0, // Not in Polygon basic data
+    description: profile?.description || '',
+    headquarters: [profile?.address?.city, profile?.address?.state].filter(Boolean).join(', '),
+    founded: profile?.list_date ? parseInt(profile.list_date.split('-')[0]) : 0,
+    employees: profile?.total_employees || 0,
+    ceo: '',
+    website: profile?.homepage_url || '',
+    revenueSegments: [],
+    geographicRevenue: [],
     financials: {
       annual: annualFinancials,
       quarterly: quarterlyFinancials,
     },
     valuation,
     risks,
-    news: mapNews(raw.news),
-    institutionalHolders: mapHolders(raw.holders, quote.price),
-    insiderTransactions: mapInsiders(raw.insiders),
-    shortInterest: 0, // Not available in FMP free tier
-    priceHistory: mapPriceHistory(raw.priceHistory),
-    earningsDate: profile.earningsAnnouncement || quote.earningsAnnouncement || '',
-    exDividendDate: profile.exDividendDate || null,
-    dividendYield,
+    news: mapPolygonNews(raw.news),
+    institutionalHolders: [],
+    insiderTransactions: [],
+    shortInterest: 0,
+    priceHistory: mapPolygonPriceHistory(raw.priceHistory),
+    earningsDate: '',
+    exDividendDate: null,
+    dividendYield: 0,
     lastUpdated,
     dataCompleteness: Math.min(completeness, 100),
   };
 }
 
-function mapFinancialPeriods(
-  income: any[],
-  balance: any[],
-  cashflow: any[],
+function mapPolygonFinancials(
+  financials: any[],
   type: 'annual' | 'quarterly'
 ): FinancialPeriod[] {
-  if (!income?.length) return [];
+  if (!financials?.length) return [];
 
-  return income.map((inc, i) => {
-    const bal = balance?.[i] || {};
-    const cf = cashflow?.[i] || {};
+  return financials.map((f) => {
+    const income = f.financials?.income_statement || {};
+    const balance = f.financials?.balance_sheet || {};
+    const cashflow = f.financials?.cash_flow_statement || {};
 
-    const revenue = inc.revenue || 0;
+    const revenue = income.revenues?.value || 0;
+    const netIncome = income.net_income_loss?.value || 0;
+    const operatingIncome = income.operating_income_loss?.value || 0;
+    const grossProfit = income.gross_profit?.value || 0;
+    const eps = income.basic_earnings_per_share?.value || 0;
+
+    const totalAssets = balance.assets?.value || 0;
+    const totalDebt = (balance.long_term_debt?.value || 0) + (balance.current_debt?.value || 0);
+    const cash = balance.cash?.value || balance.cash_and_cash_equivalents?.value || 0;
+    const currentAssets = balance.current_assets?.value || 0;
+    const currentLiabilities = balance.current_liabilities?.value || 0;
+
+    const operatingCashFlow = cashflow.net_cash_flow_from_operating_activities?.value || 0;
+    const capex = Math.abs(cashflow.net_cash_flow_from_investing_activities?.value || 0);
+    const freeCashFlow = cashflow.free_cash_flow?.value || (operatingCashFlow - capex);
+
     const label = type === 'annual'
-      ? `FY${inc.calendarYear || inc.date?.split('-')[0]}`
-      : `Q${getQuarter(inc.date)} ${inc.calendarYear || inc.date?.split('-')[0]}`;
+      ? `FY${f.fiscal_year || f.end_date?.split('-')[0]}`
+      : `Q${f.fiscal_period?.replace('Q', '') || ''} ${f.fiscal_year || f.end_date?.split('-')[0]}`;
 
     return {
       period: label,
       revenue,
-      netIncome: inc.netIncome || 0,
-      operatingIncome: inc.operatingIncome || 0,
-      grossProfit: inc.grossProfit || 0,
-      eps: inc.eps || 0,
-      totalAssets: bal.totalAssets || 0,
-      totalDebt: bal.totalDebt || (bal.longTermDebt || 0) + (bal.shortTermDebt || 0),
-      cashAndEquivalents: bal.cashAndCashEquivalents || bal.cashAndShortTermInvestments || 0,
-      currentRatio: bal.totalCurrentLiabilities
-        ? (bal.totalCurrentAssets || 0) / bal.totalCurrentLiabilities
-        : 0,
-      operatingCashFlow: cf.operatingCashFlow || 0,
-      freeCashFlow: cf.freeCashFlow || 0,
-      operatingMargin: revenue ? ((inc.operatingIncome || 0) / revenue) * 100 : 0,
-      netMargin: revenue ? ((inc.netIncome || 0) / revenue) * 100 : 0,
+      netIncome,
+      operatingIncome,
+      grossProfit,
+      eps,
+      totalAssets,
+      totalDebt,
+      cashAndEquivalents: cash,
+      currentRatio: currentLiabilities ? currentAssets / currentLiabilities : 0,
+      operatingCashFlow,
+      freeCashFlow,
+      operatingMargin: revenue ? (operatingIncome / revenue) * 100 : 0,
+      netMargin: revenue ? (netIncome / revenue) * 100 : 0,
     };
   });
 }
 
-function getQuarter(dateStr?: string): number {
-  if (!dateStr) return 0;
-  const month = parseInt(dateStr.split('-')[1]);
-  return Math.ceil(month / 3);
+function buildValuation(profile: any, price: number, financials: FinancialPeriod[]): ValuationData {
+  const marketCap = profile?.market_cap || 0;
+  const latestRevenue = financials?.[0]?.revenue || 0;
+  const latestEps = financials?.[0]?.eps || 0;
+  const latestBookValue = financials?.[0]
+    ? (financials[0].totalAssets - financials[0].totalDebt)
+    : 0;
+
+  const pe = latestEps > 0 ? price / latestEps : 0;
+  const ps = latestRevenue > 0 ? marketCap / latestRevenue : 0;
+  const sharesOutstanding = profile?.share_class_shares_outstanding || profile?.weighted_shares_outstanding || 0;
+  const bookPerShare = sharesOutstanding > 0 ? latestBookValue / sharesOutstanding : 0;
+  const pb = bookPerShare > 0 ? price / bookPerShare : 0;
+
+  return {
+    pe,
+    forwardPe: pe * 0.85,
+    ps,
+    pb,
+    evEbitda: 0,
+    pegRatio: 0,
+    sectorMedian: { pe: 20, ps: 3, pb: 3, evEbitda: 12 },
+    historical5y: { avgPe: pe, avgPs: ps, avgPb: pb },
+  };
 }
 
-function parseSegments(segmentData: any[]): SegmentData[] {
-  if (!segmentData?.length) return [];
-
-  // FMP returns segment data as array of objects with date keys
-  // Take the most recent entry
-  const latest = segmentData[0];
-  if (!latest || typeof latest !== 'object') return [];
-
-  // The structure varies — try to extract key-value pairs
-  const entries = Object.entries(latest).filter(
-    ([key]) => !['date', 'symbol', 'cik', 'filing_date', 'period'].includes(key.toLowerCase())
-  );
-
-  return entries
-    .map(([name, value]) => ({
-      name: name.replace(/Segment|Revenue/gi, '').trim(),
-      value: typeof value === 'number' ? value / 1e9 : 0, // Convert to billions
-    }))
-    .filter((s) => s.value > 0)
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 7);
-}
-
-function mapNews(newsArr: any[]): NewsItem[] {
+function mapPolygonNews(newsArr: any[]): NewsItem[] {
   if (!newsArr?.length) return [];
 
   return newsArr.slice(0, 10).map((item) => {
@@ -232,112 +206,58 @@ function mapNews(newsArr: any[]): NewsItem[] {
     else if (titleLower.includes('fed') || titleLower.includes('inflation') || titleLower.includes('economy'))
       category = 'macro';
 
+    // Polygon doesn't provide sentiment, so we'll derive a basic one from keywords
     let sentiment: NewsItem['sentiment'] = 'neutral';
-    if (item.sentiment) {
-      sentiment = item.sentiment > 0.1 ? 'positive' : item.sentiment < -0.1 ? 'negative' : 'neutral';
-    }
+    if (titleLower.includes('surge') || titleLower.includes('jump') || titleLower.includes('beat') || titleLower.includes('record'))
+      sentiment = 'positive';
+    else if (titleLower.includes('drop') || titleLower.includes('fall') || titleLower.includes('miss') || titleLower.includes('decline'))
+      sentiment = 'negative';
 
     return {
-      date: item.publishedDate?.split(' ')[0] || item.publishedDate?.split('T')[0] || '',
+      date: item.published_utc?.split('T')[0] || '',
       title,
-      source: item.site || item.source || 'Unknown',
+      source: item.publisher?.name || 'Unknown',
       category,
       sentiment,
-      url: item.url || '#',
-      summary: item.text?.substring(0, 250) || '',
+      url: item.article_url || '#',
+      summary: item.description?.substring(0, 250) || '',
     };
   });
 }
 
-function mapHolders(holders: any[], price: number): InstitutionalHolder[] {
-  if (!holders?.length) return [];
+function mapPolygonPriceHistory(bars: any[]): PricePoint[] {
+  if (!bars?.length) return [];
 
-  return holders.slice(0, 10).map((h) => ({
-    name: h.holder || h.investorName || '',
-    shares: h.shares || 0,
-    percentOwnership: h.weightedAvgPrice ? 0 : (h.ownership || 0) * 100,
-    change: h.change || 0,
-    value: (h.shares || 0) * price,
+  return bars.map((b) => ({
+    date: new Date(b.t).toISOString().split('T')[0],
+    open: b.o,
+    high: b.h,
+    low: b.l,
+    close: b.c,
+    volume: b.v,
   }));
 }
 
-function mapInsiders(insiders: any[]): InsiderTransaction[] {
-  if (!insiders?.length) return [];
-
-  return insiders
-    .filter((t) => t.securitiesTransacted > 0)
-    .slice(0, 10)
-    .map((t) => {
-      let type: InsiderTransaction['type'] = 'sell';
-      if (t.acquistionOrDisposition === 'A' || t.transactionType?.includes('Purchase') || t.transactionType?.includes('Buy')) {
-        type = 'buy';
-      } else if (t.transactionType?.includes('Exercise')) {
-        type = 'exercise';
-      }
-
-      return {
-        name: t.reportingName || t.reportingCik || '',
-        title: t.typeOfOwner || '',
-        type,
-        shares: t.securitiesTransacted || 0,
-        price: t.price || 0,
-        date: t.transactionDate || t.filingDate || '',
-        value: (t.securitiesTransacted || 0) * (t.price || 0),
-      };
-    });
-}
-
-function mapPriceHistory(history: any[]): PricePoint[] {
-  if (!history?.length) return [];
-
-  return history
-    .slice()
-    .reverse()
-    .map((p) => ({
-      date: p.date,
-      open: p.open,
-      high: p.high,
-      low: p.low,
-      close: p.close,
-      volume: p.volume,
-    }));
-}
-
-function generateRisks(profile: any, quote: any, km: any, financials: FinancialPeriod[]): RiskItem[] {
+function generateRisks(profile: any, quote: any, financials: FinancialPeriod[]): RiskItem[] {
   const risks: RiskItem[] = [];
   const latestFinancial = financials?.[0];
 
-  // Market risk from beta
-  if (profile.beta > 1.5) {
-    risks.push({
-      category: 'market',
-      title: 'High volatility',
-      description: `Beta of ${profile.beta.toFixed(2)} indicates significantly higher volatility than the market.`,
-      severity: 'high',
-    });
-  } else if (profile.beta > 1.2) {
-    risks.push({
-      category: 'market',
-      title: 'Above-average volatility',
-      description: `Beta of ${profile.beta.toFixed(2)} implies moderately higher market sensitivity.`,
-      severity: 'medium',
-    });
-  }
-
   // Valuation risk
-  const pe = quote.pe || km.peRatio || 0;
+  const pe = quote.price && latestFinancial?.eps
+    ? quote.price / latestFinancial.eps
+    : 0;
   if (pe > 50) {
     risks.push({
       category: 'financial',
       title: 'Elevated valuation',
-      description: `P/E ratio of ${pe.toFixed(1)}x significantly exceeds typical market multiples. Premium pricing reflects high growth expectations.`,
+      description: `P/E ratio of ${pe.toFixed(1)}x significantly exceeds typical market multiples.`,
       severity: 'high',
     });
   } else if (pe > 30) {
     risks.push({
       category: 'financial',
       title: 'Premium valuation',
-      description: `P/E ratio of ${pe.toFixed(1)}x is above market averages. Moderate risk of multiple compression.`,
+      description: `P/E ratio of ${pe.toFixed(1)}x is above market averages.`,
       severity: 'medium',
     });
   }
@@ -351,48 +271,32 @@ function generateRisks(profile: any, quote: any, km: any, financials: FinancialP
       risks.push({
         category: 'financial',
         title: 'High leverage',
-        description: `Debt represents ${(debtToAssets * 100).toFixed(0)}% of total assets. Interest rate sensitivity and refinancing risk.`,
+        description: `Debt represents ${(debtToAssets * 100).toFixed(0)}% of total assets.`,
         severity: debtToAssets > 0.7 ? 'high' : 'medium',
       });
     }
 
-    // Margin risk
     if (latestFinancial.netMargin < 5 && latestFinancial.revenue > 0) {
       risks.push({
         category: 'business',
         title: 'Thin profit margins',
-        description: `Net margin of ${latestFinancial.netMargin.toFixed(1)}% leaves limited buffer for revenue declines.`,
+        description: `Net margin of ${latestFinancial.netMargin.toFixed(1)}% leaves limited buffer.`,
         severity: latestFinancial.netMargin < 0 ? 'high' : 'medium',
       });
     }
   }
 
-  // 52-week range risk
-  if (quote.yearHigh && quote.yearLow) {
-    const range = quote.yearHigh - quote.yearLow;
-    const position = (quote.price - quote.yearLow) / range;
-    if (position > 0.9) {
-      risks.push({
-        category: 'market',
-        title: 'Near 52-week high',
-        description: `Trading within ${((1 - position) * 100).toFixed(0)}% of 52-week high. Potential for mean reversion.`,
-        severity: 'low',
-      });
-    }
-  }
-
-  // Data risk - always add
   risks.push({
     category: 'data',
     title: 'Data limitations',
-    description: 'Some data points may be delayed up to 15 minutes. Insider trading and institutional data updated quarterly.',
+    description: 'Some data points may be delayed. Insider trading and institutional data may not be available.',
     severity: 'low',
   });
 
   return risks;
 }
 
-// Transform FMP search results to a simpler format
+// Transform Polygon search results
 export interface SearchResult {
   ticker: string;
   name: string;
@@ -403,18 +307,22 @@ export interface SearchResult {
 export function transformFMPSearch(raw: any[]): SearchResult[] {
   if (!Array.isArray(raw)) return [];
 
+  const exchangeMap: Record<string, string> = {
+    XNAS: 'NASDAQ', XNYS: 'NYSE', XASE: 'AMEX', ARCX: 'NYSE',
+  };
+
   return raw
-    .filter((r) => r.exchangeShortName && ['NASDAQ', 'NYSE', 'AMEX'].includes(r.exchangeShortName))
+    .filter((r) => r.primary_exchange && ['XNAS', 'XNYS', 'XASE', 'ARCX'].includes(r.primary_exchange))
     .slice(0, 10)
     .map((r) => ({
-      ticker: r.symbol,
+      ticker: r.ticker,
       name: r.name,
-      exchange: r.exchangeShortName,
-      type: r.type || 'stock',
+      exchange: exchangeMap[r.primary_exchange] || r.primary_exchange,
+      type: r.type || 'CS',
     }));
 }
 
-// Transform FMP quote array for watchlist
+// Transform Polygon snapshot for watchlist quotes
 export interface QuoteData {
   ticker: string;
   name: string;
@@ -428,13 +336,21 @@ export interface QuoteData {
 export function transformFMPQuotes(raw: any[]): QuoteData[] {
   if (!Array.isArray(raw)) return [];
 
-  return raw.map((q) => ({
-    ticker: q.symbol,
-    name: q.name,
-    price: q.price,
-    change: q.change || 0,
-    changePercent: q.changesPercentage || q.changePercentage || 0,
-    marketCap: q.marketCap || 0,
-    pe: q.pe || q.peRatio || 0,
-  }));
+  return raw.map((snap) => {
+    const lastTrade = snap.lastTrade || snap.last_trade || {};
+    const prevDay = snap.prevDay || snap.prev_day || {};
+    const day = snap.day || {};
+    const price = lastTrade.p || day.c || 0;
+    const prevClose = prevDay.c || price;
+
+    return {
+      ticker: snap.ticker || '',
+      name: '', // Snapshot doesn't include name — filled from local directory
+      price,
+      change: snap.todaysChange ?? (price - prevClose),
+      changePercent: snap.todaysChangePerc ?? (prevClose ? ((price - prevClose) / prevClose) * 100 : 0),
+      marketCap: 0, // Not in snapshot
+      pe: 0, // Not in snapshot
+    };
+  });
 }
