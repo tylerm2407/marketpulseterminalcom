@@ -128,8 +128,49 @@ export function TrendingTweets({ ticker, companyName }: TrendingTweetsProps) {
     { value: 'neutral', label: 'Neutral', icon: Minus, activeClass: 'bg-muted text-muted-foreground' },
   ];
 
+  const total = allTweets.length;
+  const bullishPct = total > 0 ? (sentimentCounts.bullish / total) * 100 : 0;
+  const bearishPct = total > 0 ? (sentimentCounts.bearish / total) * 100 : 0;
+  const neutralPct = total > 0 ? (sentimentCounts.neutral / total) * 100 : 0;
+
   return (
     <div className="space-y-3">
+      {/* Sentiment breakdown bar */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+          <span>Sentiment Breakdown</span>
+          <span>{total} tweets</span>
+        </div>
+        <div className="flex h-2.5 rounded-full overflow-hidden bg-muted/50">
+          {bullishPct > 0 && (
+            <div
+              className="bg-gain transition-all duration-500"
+              style={{ width: `${bullishPct}%` }}
+              title={`Bullish: ${bullishPct.toFixed(0)}%`}
+            />
+          )}
+          {neutralPct > 0 && (
+            <div
+              className="bg-muted-foreground/40 transition-all duration-500"
+              style={{ width: `${neutralPct}%` }}
+              title={`Neutral: ${neutralPct.toFixed(0)}%`}
+            />
+          )}
+          {bearishPct > 0 && (
+            <div
+              className="bg-loss transition-all duration-500"
+              style={{ width: `${bearishPct}%` }}
+              title={`Bearish: ${bearishPct.toFixed(0)}%`}
+            />
+          )}
+        </div>
+        <div className="flex items-center gap-3 text-[10px]">
+          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-gain" /> Bullish {bullishPct.toFixed(0)}%</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-muted-foreground/40" /> Neutral {neutralPct.toFixed(0)}%</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-loss" /> Bearish {bearishPct.toFixed(0)}%</span>
+        </div>
+      </div>
+
       {/* Sentiment filter bar */}
       <div className="flex items-center gap-1.5 flex-wrap">
         {filterButtons.map(({ value, label, icon: Icon, activeClass }) => (
