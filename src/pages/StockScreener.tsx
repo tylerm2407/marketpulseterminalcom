@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { toast } from '@/hooks/use-toast';
+import { useSubscription } from '@/hooks/useSubscription';
+import { UpgradePrompt } from '@/components/UpgradePrompt';
 
 interface ScreenerResult {
   ticker: string;
@@ -24,11 +26,23 @@ const EXAMPLE_QUERIES = [
 ];
 
 const StockScreener = () => {
+  const { canUseScreener } = useSubscription();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ScreenerResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastQuery, setLastQuery] = useState('');
   const { addTicker, removeTicker, isWatching } = useWatchlistStore();
+
+  if (!canUseScreener) {
+    return (
+      <div className="min-h-screen bg-background pb-16 sm:pb-0">
+        <section className="container mx-auto px-4 py-8 max-w-3xl">
+          <UpgradePrompt feature="AI Stock Screener" description="Upgrade to Pro to screen stocks with natural language AI queries." />
+        </section>
+        <Footer />
+      </div>
+    );
+  }
 
   const runScreen = async (q: string) => {
     if (!q.trim()) return;
