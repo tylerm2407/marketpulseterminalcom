@@ -169,25 +169,36 @@ const StockComparison = () => {
         )}
 
         {tickers.length > 0 && (
-          <div className="overflow-x-auto -mx-4 px-4">
-            <div className="flex gap-4 min-w-0" style={{ minWidth: tickers.length * 220 }}>
-              {/* Labels column */}
-              <div className="w-0 sm:w-24 shrink-0 hidden sm:block">
-                <div className="h-[60px]" /> {/* spacer for header */}
-                {METRIC_LABELS.map(label => (
-                  <div key={label} className="py-1.5 border-b border-border/50 last:border-0">
-                    <span className="text-xs text-muted-foreground">{label}</span>
-                  </div>
-                ))}
-              </div>
-              {/* Stock columns */}
+          <>
+            {/* Mobile: stacked cards */}
+            <div className="grid grid-cols-1 gap-4 sm:hidden">
               {tickers.map(ticker => (
-                <div key={ticker} className="flex-1 min-w-[200px] bg-card rounded-lg border border-border p-4">
+                <div key={ticker} className="bg-card rounded-lg border border-border p-4">
                   <StockColumn ticker={ticker} onRemove={() => removeTicker(ticker)} />
                 </div>
               ))}
             </div>
-          </div>
+            {/* Desktop: side-by-side */}
+            <div className="hidden sm:block overflow-x-auto -mx-4 px-4">
+              <div className="flex gap-4 min-w-0" style={{ minWidth: tickers.length * 220 }}>
+                {/* Labels column */}
+                <div className="w-24 shrink-0">
+                  <div className="h-[60px]" />
+                  {METRIC_LABELS.map(label => (
+                    <div key={label} className="py-1.5 border-b border-border/50 last:border-0">
+                      <span className="text-xs text-muted-foreground">{label}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* Stock columns */}
+                {tickers.map(ticker => (
+                  <div key={ticker} className="flex-1 min-w-[200px] bg-card rounded-lg border border-border p-4">
+                    <StockColumn ticker={ticker} onRemove={() => removeTicker(ticker)} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
         )}
       </section>
       <Footer />
