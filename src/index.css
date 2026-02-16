@@ -156,6 +156,14 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   .marquee-track {
     animation: marquee-scroll 40s linear infinite;
   }

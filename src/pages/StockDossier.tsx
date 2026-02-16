@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Footer } from '@/components/layout/Footer';
 import { DossierHeader } from '@/components/dossier/DossierHeader';
@@ -11,20 +12,31 @@ import { NewsSentiment } from '@/components/dossier/NewsSentiment';
 import { OwnershipInsiders } from '@/components/dossier/OwnershipInsiders';
 import { LatestBuzz } from '@/components/dossier/LatestBuzz';
 import { TrendingTweets } from '@/components/dossier/TrendingTweets';
-import { ArrowLeft, Loader2, AlertCircle, Wifi } from 'lucide-react';
+import { FallbackBanner } from '@/components/FallbackBanner';
+import { DataFreshness } from '@/components/DataFreshness';
+import { ErrorState } from '@/components/ErrorState';
+import { ArrowLeft, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useStockDossier } from '@/hooks/useStockData';
 import { getStock as getMockStock } from '@/data/mockStocks';
+import { addRecentlyViewed } from '@/hooks/useRecentlyViewed';
 
 export default function StockDossier() {
   const { ticker } = useParams<{ ticker: string }>();
-  const { data: stock, isLoading, error, isError } = useStockDossier(ticker);
+  const { data: stock, isLoading, error, isError, dataUpdatedAt, refetch } = useStockDossier(ticker);
 
   // Check if we fell back to mock data (no live API response)
   const mockStock = ticker ? getMockStock(ticker) : undefined;
   const isLiveData = stock && stock !== mockStock;
+
+  // Track recently viewed
+  useEffect(() => {
+    if (stock?.ticker && stock?.name) {
+      addRecentlyViewed(stock.ticker, stock.name);
+    }
+  }, [stock?.ticker, stock?.name]);
 
   if (isLoading) {
     return (
@@ -40,16 +52,21 @@ export default function StockDossier() {
   if (!stock) {
     return (
       <div className="min-h-screen bg-background pb-16 sm:pb-0">
-        <main className="container mx-auto px-4 py-16 text-center">
-          <AlertCircle className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-2">Stock Not Found</h1>
-          <p className="text-muted-foreground mb-6">
-            No data available for ticker "{ticker}". Make sure it's listed on NASDAQ or NYSE.
-            {isError && <span className="block mt-1 text-sm text-destructive">Error: {(error as Error)?.message}</span>}
-          </p>
-          <Link to="/">
-            <Button variant="outline"><ArrowLeft className="h-4 w-4 mr-2" /> Back to Search</Button>
-          </Link>
+        <main className="container mx-auto px-4 py-16 max-w-lg">
+          <ErrorState
+            title={isError ? 'Data temporarily unavailable' : `Stock "${ticker}" not found`}
+            message={
+              isError
+                ? `We couldn't load data for "${ticker}" right now. This may be due to API rate limiting or a temporary outage. Please try again in a moment.`
+                : `No data available for ticker "${ticker}". Make sure it's listed on NASDAQ or NYSE.`
+            }
+            onRetry={isError ? () => refetch() : undefined}
+          />
+          <div className="text-center mt-4">
+            <Link to="/">
+              <Button variant="outline"><ArrowLeft className="h-4 w-4 mr-2" /> Back to Search</Button>
+            </Link>
+          </div>
         </main>
         <Footer />
       </div>
@@ -59,16 +76,20 @@ export default function StockDossier() {
   return (
     <div className="min-h-screen bg-background pb-16 sm:pb-0">
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-5xl">
-        {/* Live data indicator */}
-        <div className="flex items-center gap-2 mb-3">
+        {/* Live data indicator + freshness */}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
           <Badge variant="outline" className={`text-[10px] ${isLiveData ? 'text-gain border-gain/30' : 'text-warning border-warning/30'}`}>
             <Wifi className="h-3 w-3 mr-1" />
             {isLiveData ? 'Live Data' : 'Sample Data'}
           </Badge>
-          {!isLiveData && (
-            <span className="text-[10px] text-muted-foreground">Using cached sample data — live API may be rate-limited</span>
-          )}
+          <DataFreshness updatedAt={dataUpdatedAt} />
         </div>
+
+        {/* Fallback banner */}
+        <FallbackBanner
+          show={!isLiveData}
+          message="Showing cached sample data — live data temporarily unavailable. Some information may be outdated."
+        />
 
         <DossierHeader stock={stock} />
         <div className="space-y-4 mt-4">
@@ -117,6 +138,7 @@ export default function StockDossier() {
 function DossierSkeleton() {
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Header skeleton */}
       <div className="bg-card rounded-lg border border-border p-6">
         <div className="flex items-center gap-3 mb-4">
           <Skeleton className="h-7 w-48" />
@@ -133,10 +155,16 @@ function DossierSkeleton() {
           <Skeleton className="h-4 w-28" />
         </div>
       </div>
+      {/* Section skeletons */}
       {[1, 2, 3].map(i => (
         <div key={i} className="bg-card rounded-lg border border-border p-6">
           <Skeleton className="h-5 w-40 mb-4" />
-          <Skeleton className="h-48 w-full" />
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-4/6" />
+            <Skeleton className="h-32 w-full mt-2" />
+          </div>
         </div>
       ))}
     </div>
