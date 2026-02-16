@@ -10,17 +10,24 @@ interface RecentStock {
 }
 
 let listeners: Array<() => void> = [];
+let cachedSnapshot: RecentStock[] = [];
+let cachedRaw: string | null = null;
+
 function emitChange() {
+  cachedRaw = null; // invalidate cache
   listeners.forEach((l) => l());
 }
 
 function getSnapshot(): RecentStock[] {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw === cachedRaw) return cachedSnapshot;
+  cachedRaw = raw;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    cachedSnapshot = raw ? JSON.parse(raw) : [];
   } catch {
-    return [];
+    cachedSnapshot = [];
   }
+  return cachedSnapshot;
 }
 
 function subscribe(cb: () => void) {
