@@ -3,6 +3,8 @@ import { Navigate, Link } from 'react-router-dom';
 import { Bell, BellRing, Plus, Trash2, ArrowUp, ArrowDown, Loader2, Check } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useSubscription } from '@/hooks/useSubscription';
+import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +31,7 @@ interface PriceAlert {
 
 export default function PriceAlerts() {
   const { user, loading: authLoading } = useAuth();
+  const { canUsePortfolio: canUseAlerts } = useSubscription();
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -102,6 +105,16 @@ export default function PriceAlerts() {
 
   if (authLoading) return null;
   if (!user) return <Navigate to="/auth" replace />;
+  if (!canUseAlerts) {
+    return (
+      <div className="min-h-screen bg-background pb-16 sm:pb-0">
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <UpgradePrompt feature="Price Alerts" description="Upgrade to Pro to set price alerts and get notified when stocks hit your targets." />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   const activeAlerts = alerts.filter(a => !a.is_triggered);
   const triggeredAlerts = alerts.filter(a => a.is_triggered);

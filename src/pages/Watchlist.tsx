@@ -2,14 +2,17 @@ import { Link } from 'react-router-dom';
 import { Footer } from '@/components/layout/Footer';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { stocksMap } from '@/data/mockStocks';
-import { ArrowDown, ArrowUp, Eye, EyeOff, ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowUp, Eye, EyeOff, ArrowRight, Loader2, Sparkles, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatPercent, formatLargeNumber } from '@/lib/formatters';
 import { useWatchlistQuotes } from '@/hooks/useStockData';
 import { WatchlistSummary } from '@/components/watchlist/WatchlistSummary';
+import { useSubscription } from '@/hooks/useSubscription';
 
 export default function Watchlist() {
+  const { watchlistLimit } = useSubscription();
   const {
     tickers,
     removeTicker,
@@ -19,6 +22,7 @@ export default function Watchlist() {
     setWeeklySummary,
   } = useWatchlistStore();
   const { data: liveQuotes, isLoading } = useWatchlistQuotes(tickers);
+  const isAtLimit = watchlistLimit !== null && tickers.length >= watchlistLimit;
 
   const quoteMap = new Map(
     (liveQuotes || []).map(q => [q.ticker, q])
@@ -31,11 +35,18 @@ export default function Watchlist() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Watchlist</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {tickers.length} stocks tracked
+          <p className="text-sm text-muted-foreground mt-1">
+              {tickers.length}{watchlistLimit !== null ? `/${watchlistLimit}` : ''} stocks tracked
               {isLoading && <Loader2 className="h-3 w-3 animate-spin inline ml-2" />}
             </p>
           </div>
+          {isAtLimit && (
+            <Link to="/pricing">
+              <Badge variant="outline" className="gap-1 text-accent border-accent/30 cursor-pointer hover:bg-accent/10">
+                <Crown className="h-3 w-3" /> Upgrade for unlimited
+              </Badge>
+            </Link>
+          )}
         </div>
 
         {tickers.length === 0 ? (

@@ -3,6 +3,8 @@ import { Navigate, Link } from 'react-router-dom';
 import { Plus, Trash2, TrendingUp, TrendingDown, DollarSign, PieChart, Loader2, Wallet } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useSubscription } from '@/hooks/useSubscription';
+import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +30,7 @@ interface Holding {
 
 export default function Portfolio() {
   const { user, loading: authLoading } = useAuth();
+  const { canUsePortfolio } = useSubscription();
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -83,6 +86,16 @@ export default function Portfolio() {
 
   if (authLoading) return null;
   if (!user) return <Navigate to="/auth" replace />;
+  if (!canUsePortfolio) {
+    return (
+      <div className="min-h-screen bg-background pb-16 sm:pb-0">
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
+          <UpgradePrompt feature="Portfolio Tracking" description="Upgrade to Pro to track your holdings, performance, and dividends." />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   // Portfolio stats
   const totalCost = holdings.reduce((sum, h) => sum + h.shares * h.buy_price, 0);

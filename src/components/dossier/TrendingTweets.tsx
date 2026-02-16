@@ -3,9 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, Twitter, AlertCircle, ThumbsUp, Repeat2, TrendingUp, TrendingDown, Minus, ExternalLink } from 'lucide-react';
+import { RefreshCw, Twitter, AlertCircle, ThumbsUp, Repeat2, TrendingUp, TrendingDown, Minus, ExternalLink, Crown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useNavigate } from 'react-router-dom';
 
 interface Tweet {
   username: string;
@@ -35,6 +37,8 @@ async function fetchTweets(ticker: string, companyName: string) {
 type SentimentFilter = 'all' | 'bullish' | 'bearish' | 'neutral';
 
 export function TrendingTweets({ ticker, companyName }: TrendingTweetsProps) {
+  const { canUseTweets } = useSubscription();
+  const navigate = useNavigate();
   const [enabled, setEnabled] = useState(false);
   const [sentimentFilter, setSentimentFilter] = useState<SentimentFilter>('all');
 
@@ -54,15 +58,27 @@ export function TrendingTweets({ ticker, companyName }: TrendingTweetsProps) {
         <p className="text-sm text-muted-foreground text-center max-w-xs">
           See what people on X are saying about ${ticker} — trending tweets from analysts, traders, and influencers.
         </p>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setEnabled(true)}
-          className="gap-2"
-        >
-          <Twitter className="h-4 w-4" />
-          Load Trending Tweets
-        </Button>
+        {canUseTweets ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEnabled(true)}
+            className="gap-2"
+          >
+            <Twitter className="h-4 w-4" />
+            Load Trending Tweets
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/pricing')}
+            className="gap-2"
+          >
+            <Crown className="h-4 w-4 text-accent" />
+            Pro Feature — Upgrade
+          </Button>
+        )}
       </div>
     );
   }
