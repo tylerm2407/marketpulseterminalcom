@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import StockDossier from "./pages/StockDossier";
 import Watchlist from "./pages/Watchlist";
 import News from "./pages/News";
+import EarningsCalendar from "./pages/EarningsCalendar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/stock/:ticker" element={<StockDossier />} />
           <Route path="/watchlist" element={<Watchlist />} />
           <Route path="/news" element={<News />} />
+          <Route path="/earnings" element={<EarningsCalendar />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <MobileBottomNav />

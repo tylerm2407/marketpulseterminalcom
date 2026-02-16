@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom';
-import { BarChart3, ArrowUp, ArrowDown, Shield, FileText, Eye, Star, Clock } from 'lucide-react';
+import { BarChart3, ArrowUp, ArrowDown, Shield, FileText, Eye, Star, Clock, CalendarDays, Activity } from 'lucide-react';
 import { SearchBar } from '@/components/search/SearchBar';
 import { Footer } from '@/components/layout/Footer';
 import { TickerMarquee } from '@/components/TickerMarquee';
 import { Sparkline } from '@/components/Sparkline';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MarketIndices } from '@/components/market/MarketIndices';
+import { SectorHeatmap } from '@/components/market/SectorHeatmap';
 import { stocksList } from '@/data/mockStocks';
 import { useWatchlistQuotes, useSparklines } from '@/hooks/useStockData';
+import { useMarketOverview } from '@/hooks/useMarketOverview';
 import { formatCurrency, formatPercent, formatLargeNumber } from '@/lib/formatters';
 import { Badge } from '@/components/ui/badge';
 import { useWatchlistStore } from '@/stores/watchlistStore';
@@ -17,6 +20,7 @@ const EXPLORE_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'TSLA'];
 const Index = () => {
   const { data: liveQuotes } = useWatchlistQuotes(EXPLORE_TICKERS);
   const { data: sparklines } = useSparklines(EXPLORE_TICKERS);
+  const { data: marketOverview, isLoading: marketLoading } = useMarketOverview();
   const { addTicker, removeTicker, isWatching } = useWatchlistStore();
   const { items: recentlyViewed } = useRecentlyViewed();
   const quoteMap = new Map((liveQuotes || []).map(q => [q.ticker, q]));
@@ -49,9 +53,40 @@ const Index = () => {
         <TickerMarquee variant="hero" />
       </section>
 
+      {/* Market Overview */}
+      <section className="container mx-auto px-4 pt-8 pb-0 max-w-5xl">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-accent" />
+            <h2 className="text-sm font-semibold text-foreground">Market Overview</h2>
+          </div>
+          {marketOverview?.timestamp && (
+            <span className="text-[10px] text-muted-foreground">
+              Updated {new Date(marketOverview.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+        </div>
+        <MarketIndices indices={marketOverview?.indices} isLoading={marketLoading} />
+      </section>
+
+      {/* Sector Heatmap */}
+      <section className="container mx-auto px-4 pt-6 pb-0 max-w-5xl">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-accent" />
+            <h2 className="text-sm font-semibold text-foreground">Sector Performance</h2>
+          </div>
+          <Link to="/earnings" className="text-xs text-accent hover:underline flex items-center gap-1">
+            <CalendarDays className="h-3 w-3" />
+            Earnings Calendar
+          </Link>
+        </div>
+        <SectorHeatmap sectors={marketOverview?.sectors} isLoading={marketLoading} />
+      </section>
+
       {/* Recently Viewed */}
       {recentlyViewed.length > 0 && (
-        <section className="container mx-auto px-4 pt-10 pb-0 max-w-5xl">
+        <section className="container mx-auto px-4 pt-8 pb-0 max-w-5xl">
           <div className="flex items-center gap-2 mb-4">
             <Clock className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-sm font-semibold text-foreground">Recently Viewed</h2>
@@ -72,7 +107,7 @@ const Index = () => {
       )}
 
       {/* Trending */}
-      <section className="container mx-auto px-4 py-10 max-w-5xl">
+      <section className="container mx-auto px-4 py-8 max-w-5xl">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-foreground">Explore Stocks</h2>
           <span className="text-[10px] sm:text-xs text-muted-foreground">All price data is delayed ~15 minutes</span>
