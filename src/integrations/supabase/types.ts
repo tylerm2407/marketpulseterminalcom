@@ -35,6 +35,87 @@ export type Database = {
         }
         Relationships: []
       }
+      portfolio_holdings: {
+        Row: {
+          buy_date: string | null
+          buy_price: number
+          company_name: string
+          created_at: string
+          dividend_yield: number | null
+          id: string
+          notes: string | null
+          shares: number
+          ticker: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          buy_date?: string | null
+          buy_price?: number
+          company_name?: string
+          created_at?: string
+          dividend_yield?: number | null
+          id?: string
+          notes?: string | null
+          shares?: number
+          ticker: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          buy_date?: string | null
+          buy_price?: number
+          company_name?: string
+          created_at?: string
+          dividend_yield?: number | null
+          id?: string
+          notes?: string | null
+          shares?: number
+          ticker?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      price_alerts: {
+        Row: {
+          company_name: string
+          created_at: string
+          direction: string
+          id: string
+          is_read: boolean
+          is_triggered: boolean
+          target_price: number
+          ticker: string
+          triggered_at: string | null
+          user_id: string
+        }
+        Insert: {
+          company_name?: string
+          created_at?: string
+          direction: string
+          id?: string
+          is_read?: boolean
+          is_triggered?: boolean
+          target_price: number
+          ticker: string
+          triggered_at?: string | null
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          is_read?: boolean
+          is_triggered?: boolean
+          target_price?: number
+          ticker?: string
+          triggered_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
