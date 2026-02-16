@@ -13,6 +13,7 @@ import EarningsCalendar from "./pages/EarningsCalendar";
 import StockComparison from "./pages/StockComparison";
 import StockScreener from "./pages/StockScreener";
 import NotFound from "./pages/NotFound";
+import { OnboardingTour } from "@/components/OnboardingTour";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
         <MobileBottomNav />
+        <OnboardingTour />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

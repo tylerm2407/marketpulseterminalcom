@@ -1,6 +1,7 @@
 import type { StockData } from '@/types/stock';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from 'lucide-react';
+import { SourceAttribution } from '@/components/SourceAttribution';
 
 const categoryLabels: Record<string, string> = {
   earnings: 'Earnings',
@@ -51,9 +52,12 @@ export function NewsSentiment({ stock }: { stock: StockData }) {
           </div>
         </a>
       ))}
-      <p className="text-xs text-muted-foreground italic mt-2">
-        Sentiment reflects aggregated tone of coverage, not a recommendation.
-      </p>
+      <div className="flex items-center justify-between mt-2">
+        <p className="text-xs text-muted-foreground italic">
+          Sentiment reflects aggregated tone of coverage, not a recommendation.
+        </p>
+        <SourceAttribution source="Polygon.io" />
+      </div>
     </div>
   );
 }

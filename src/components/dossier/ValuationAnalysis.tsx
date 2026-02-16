@@ -1,6 +1,8 @@
 import type { StockData } from '@/types/stock';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { CHART_COLORS } from '@/lib/formatters';
+import { GlossaryTerm } from '@/components/GlossaryTerm';
+import { SourceAttribution } from '@/components/SourceAttribution';
 
 export function ValuationAnalysis({ stock }: { stock: StockData }) {
   const { valuation } = stock;
@@ -15,10 +17,10 @@ export function ValuationAnalysis({ stock }: { stock: StockData }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-        <MetricCard label="P/E" value={valuation.pe} subtitle={`Fwd: ${valuation.forwardPe.toFixed(1)}`} />
-        <MetricCard label="P/S" value={valuation.ps} subtitle={`Sector: ${valuation.sectorMedian.ps.toFixed(1)}`} />
-        <MetricCard label="P/B" value={valuation.pb} subtitle={`Sector: ${valuation.sectorMedian.pb.toFixed(1)}`} />
-        <MetricCard label="EV/EBITDA" value={valuation.evEbitda} subtitle={`PEG: ${valuation.pegRatio.toFixed(1)}`} />
+        <MetricCard label="P/E" value={valuation.pe} subtitle={`Fwd: ${valuation.forwardPe.toFixed(1)}`} glossaryKey="pe" />
+        <MetricCard label="P/S" value={valuation.ps} subtitle={`Sector: ${valuation.sectorMedian.ps.toFixed(1)}`} glossaryKey="ps" />
+        <MetricCard label="P/B" value={valuation.pb} subtitle={`Sector: ${valuation.sectorMedian.pb.toFixed(1)}`} glossaryKey="pb" />
+        <MetricCard label="EV/EBITDA" value={valuation.evEbitda} subtitle={`PEG: ${valuation.pegRatio.toFixed(1)}`} glossaryKey="evEbitda" />
       </div>
 
       <div>
@@ -46,17 +48,20 @@ export function ValuationAnalysis({ stock }: { stock: StockData }) {
         </p>
       </div>
 
-      <p className="text-xs text-muted-foreground italic">
-        Valuation models are scenarios, not recommendations. Adjust assumptions to reflect your views.
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground italic">
+          Valuation models are scenarios, not recommendations. Adjust assumptions to reflect your views.
+        </p>
+        <SourceAttribution source="Polygon.io" />
+      </div>
     </div>
   );
 }
 
-function MetricCard({ label, value, subtitle }: { label: string; value: number; subtitle: string }) {
+function MetricCard({ label, value, subtitle, glossaryKey }: { label: string; value: number; subtitle: string; glossaryKey?: string }) {
   return (
     <div className="p-3 rounded-lg bg-muted/50 border border-border">
-      <div className="text-xs text-muted-foreground mb-1">{label}</div>
+      <div className="text-xs text-muted-foreground mb-1">{glossaryKey ? <GlossaryTerm termKey={glossaryKey}>{label}</GlossaryTerm> : label}</div>
       <div className="text-xl font-bold text-foreground font-mono">{value.toFixed(1)}x</div>
       <div className="text-xs text-muted-foreground mt-0.5">{subtitle}</div>
     </div>

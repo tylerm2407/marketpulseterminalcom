@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import type { StockData } from '@/types/stock';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { formatLargeNumber, formatCurrency, formatPercent, formatNumber } from '@/lib/formatters';
+import { GlossaryTerm } from '@/components/GlossaryTerm';
 
 export function DossierHeader({ stock }: { stock: StockData }) {
   const { addTicker, removeTicker } = useWatchlistStore();
@@ -36,10 +37,10 @@ export function DossierHeader({ stock }: { stock: StockData }) {
 
           {/* Key stats - grid on mobile for better readability */}
           <div className="grid grid-cols-2 sm:flex sm:items-center gap-x-4 gap-y-1 mt-2 text-xs sm:text-sm text-muted-foreground">
-            <span>Mkt Cap: <span className="font-medium text-foreground">{formatLargeNumber(stock.marketCap)}</span></span>
-            <span>Vol: <span className="font-medium text-foreground">{formatCompactNumber(stock.volume)}</span></span>
-            <span>52W: <span className="font-medium text-foreground">{formatCurrency(stock.low52w)} – {formatCurrency(stock.high52w)}</span></span>
-            <span>β: <span className="font-medium text-foreground">{stock.beta.toFixed(2)}</span></span>
+            <span><GlossaryTerm termKey="marketCap">Mkt Cap</GlossaryTerm>: <span className="font-medium text-foreground">{formatLargeNumber(stock.marketCap)}</span></span>
+            <span><GlossaryTerm termKey="volume">Vol</GlossaryTerm>: <span className="font-medium text-foreground">{formatCompactNumber(stock.volume)}</span></span>
+            <span><GlossaryTerm termKey="52w">52W</GlossaryTerm>: <span className="font-medium text-foreground">{formatCurrency(stock.low52w)} – {formatCurrency(stock.high52w)}</span></span>
+            <span><GlossaryTerm termKey="beta">β</GlossaryTerm>: <span className="font-medium text-foreground">{stock.beta.toFixed(2)}</span></span>
           </div>
         </div>
 

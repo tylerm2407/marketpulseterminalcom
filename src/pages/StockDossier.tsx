@@ -16,6 +16,7 @@ import { FallbackBanner } from '@/components/FallbackBanner';
 import { DataFreshness } from '@/components/DataFreshness';
 import { ErrorState } from '@/components/ErrorState';
 import { ArrowLeft, Wifi } from 'lucide-react';
+import { SourceAttribution } from '@/components/SourceAttribution';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -83,6 +84,7 @@ export default function StockDossier() {
             {isLiveData ? 'Live Data' : 'Sample Data'}
           </Badge>
           <DataFreshness updatedAt={dataUpdatedAt} />
+          <SourceAttribution source="Polygon.io" />
         </div>
 
         {/* Fallback banner */}
