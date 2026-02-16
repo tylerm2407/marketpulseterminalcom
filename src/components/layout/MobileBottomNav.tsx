@@ -1,12 +1,13 @@
 import { useLocation, Link } from 'react-router-dom';
-import { Home, Eye, Newspaper, CalendarDays } from 'lucide-react';
+import { Home, Eye, Newspaper, GitCompareArrows, Sparkles } from 'lucide-react';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 
 const navItems = [
   { label: 'Home', icon: Home, path: '/' },
   { label: 'Watchlist', icon: Eye, path: '/watchlist' },
   { label: 'News', icon: Newspaper, path: '/news' },
-  { label: 'Earnings', icon: CalendarDays, path: '/earnings' },
+  { label: 'Compare', icon: GitCompareArrows, path: '/compare' },
+  { label: 'Screener', icon: Sparkles, path: '/screener' },
 ] as const;
 
 export function MobileBottomNav() {
