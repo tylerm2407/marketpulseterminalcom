@@ -15,6 +15,7 @@ const CACHE_TTL: Record<string, number> = {
   'search':     24 * 60 * 60,  // 24 hours
   'sparklines': 30 * 60,       // 30 minutes
   'news':       15 * 60,       // 15 minutes
+  'market-overview': 5 * 60,   // 5 minutes
 };
 
 // ---------- Supabase client (service role for cache writes) ----------
@@ -123,15 +124,10 @@ async function fetchDossier(ticker: string, apiKey: string) {
     news,
     priceHistory,
   ] = await Promise.all([
-    // Company profile
     fetchPolygon(`/v3/reference/tickers/${ticker}`, {}, apiKey),
-    // Current quote/snapshot
     fetchPolygon(`/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}`, {}, apiKey),
-    // Financial statements (up to 20 periods)
     fetchPolygon(`/vX/reference/financials`, { ticker, limit: '20', order: 'desc', sort: 'period_of_report_date' }, apiKey),
-    // News
     fetchPolygon(`/v2/reference/news`, { ticker, limit: '10', order: 'desc' }, apiKey),
-    // 5 year historical daily bars
     fetchPolygon(`/v2/aggs/ticker/${ticker}/range/1/day/${fromDate5y}/${toDate}`, { adjusted: 'true', sort: 'asc', limit: '5000' }, apiKey),
   ]);
 
@@ -141,7 +137,6 @@ async function fetchDossier(ticker: string, apiKey: string) {
   const newsResults = news?.results || [];
   const priceResults = priceHistory?.results || [];
 
-  // Separate annual vs quarterly financials
   const annualFinancials = financialResults.filter((f: any) => f.timeframe === 'annual').slice(0, 3);
   const quarterlyFinancials = financialResults.filter((f: any) => f.timeframe === 'quarterly').slice(0, 4);
 
@@ -152,7 +147,6 @@ async function fetchDossier(ticker: string, apiKey: string) {
     quarterlyFinancials,
     priceHistory: priceResults,
     news: newsResults,
-    // These endpoints aren't available on Polygon free tier, provide empty arrays
     holders: [],
     insiders: [],
   };
@@ -178,7 +172,6 @@ async function fetchQuotes(tickers: string[], apiKey: string) {
   }
 
   if (uncachedTickers.length > 0) {
-    // Use snapshot endpoint for each ticker
     const freshResults = await Promise.all(
       uncachedTickers.map(async (ticker) => {
         const data = await fetchPolygon(
@@ -261,6 +254,91 @@ async function fetchSparklines(tickers: string[], apiKey: string) {
   return results;
 }
 
+// ---------- Market Overview ----------
+// Index ETFs and sector ETFs for market overview
+const INDEX_TICKERS = ['SPY', 'QQQ', 'DIA', 'IWM'];
+const SECTOR_ETFS: Record<string, string> = {
+  XLK: 'Technology',
+  XLF: 'Financial Services',
+  XLV: 'Healthcare',
+  XLC: 'Communication Services',
+  XLY: 'Consumer Cyclical',
+  XLP: 'Consumer Defensive',
+  XLE: 'Energy',
+  XLI: 'Industrials',
+  XLB: 'Materials',
+  XLRE: 'Real Estate',
+  XLU: 'Utilities',
+};
+
+async function fetchMarketOverview(apiKey: string) {
+  const cacheKey = 'market-overview';
+  const cached = await getFromCache(cacheKey);
+  if (cached) return cached;
+
+  const allTickers = [...INDEX_TICKERS, ...Object.keys(SECTOR_ETFS)];
+
+  const snapshots = await Promise.all(
+    allTickers.map(async (ticker) => {
+      const data = await fetchPolygon(
+        `/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}`,
+        {},
+        apiKey
+      );
+      return { ticker, snapshot: data?.ticker || null };
+    })
+  );
+
+  const indices = snapshots
+    .filter(s => INDEX_TICKERS.includes(s.ticker) && s.snapshot)
+    .map(s => {
+      const snap = s.snapshot;
+      const lastTrade = snap.lastTrade || snap.last_trade || {};
+      const prevDay = snap.prevDay || snap.prev_day || {};
+      const price = lastTrade.p || snap.day?.c || 0;
+      const prevClose = prevDay.c || price;
+      const indexNames: Record<string, string> = {
+        SPY: 'S&P 500',
+        QQQ: 'NASDAQ 100',
+        DIA: 'Dow Jones',
+        IWM: 'Russell 2000',
+      };
+      return {
+        ticker: s.ticker,
+        name: indexNames[s.ticker] || s.ticker,
+        price,
+        change: snap.todaysChange ?? (price - prevClose),
+        changePercent: snap.todaysChangePerc ?? (prevClose ? ((price - prevClose) / prevClose) * 100 : 0),
+      };
+    });
+
+  const sectors = snapshots
+    .filter(s => SECTOR_ETFS[s.ticker] && s.snapshot)
+    .map(s => {
+      const snap = s.snapshot;
+      const lastTrade = snap.lastTrade || snap.last_trade || {};
+      const prevDay = snap.prevDay || snap.prev_day || {};
+      const price = lastTrade.p || snap.day?.c || 0;
+      const prevClose = prevDay.c || price;
+      return {
+        ticker: s.ticker,
+        name: SECTOR_ETFS[s.ticker],
+        price,
+        change: snap.todaysChange ?? (price - prevClose),
+        changePercent: snap.todaysChangePerc ?? (prevClose ? ((price - prevClose) / prevClose) * 100 : 0),
+      };
+    })
+    .sort((a, b) => b.changePercent - a.changePercent);
+
+  const result = { indices, sectors, timestamp: new Date().toISOString() };
+
+  if (indices.length > 0) {
+    await setCache(cacheKey, result, CACHE_TTL['market-overview']);
+  }
+
+  return result;
+}
+
 function getToday(): string {
   return new Date().toISOString().split('T')[0];
 }
@@ -323,6 +401,9 @@ serve(async (req) => {
       case 'sparklines':
         if (!tickers?.length) throw new Error('tickers required for sparklines type');
         data = await fetchSparklines(tickers.map((t: string) => t.toUpperCase()), apiKey);
+        break;
+      case 'market-overview':
+        data = await fetchMarketOverview(apiKey);
         break;
       default:
         throw new Error(`Unknown type: ${type}`);

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, Eye, Home, Newspaper, Sun, Moon, Search, X } from 'lucide-react';
+import { BarChart3, Eye, Home, Newspaper, CalendarDays, Sun, Moon, Search, X } from 'lucide-react';
 import { SearchBar } from '@/components/search/SearchBar';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { useTheme } from '@/hooks/useTheme';
@@ -12,6 +12,7 @@ const navLinks = [
   { label: 'Home', path: '/', icon: Home },
   { label: 'Watchlist', path: '/watchlist', icon: Eye },
   { label: 'News', path: '/news', icon: Newspaper },
+  { label: 'Earnings', path: '/earnings', icon: CalendarDays },
 ] as const;
 
 export function Header() {
