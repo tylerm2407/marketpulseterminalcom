@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, Eye, Home, Newspaper, CalendarDays, GitCompareArrows, Sparkles, Sun, Moon, Search, X } from 'lucide-react';
+import { BarChart3, Eye, Home, Newspaper, GitCompareArrows, Sparkles, Sun, Moon, Search, X, Wallet, Bell, LogIn, LogOut } from 'lucide-react';
 import { SearchBar } from '@/components/search/SearchBar';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -11,6 +12,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 const navLinks = [
   { label: 'Home', path: '/', icon: Home },
   { label: 'Watchlist', path: '/watchlist', icon: Eye },
+  { label: 'Portfolio', path: '/portfolio', icon: Wallet },
+  { label: 'Alerts', path: '/alerts', icon: Bell },
   { label: 'News', path: '/news', icon: Newspaper },
   { label: 'Compare', path: '/compare', icon: GitCompareArrows },
   { label: 'Screener', path: '/screener', icon: Sparkles },
@@ -20,6 +23,7 @@ export function Header() {
   const { tickers } = useWatchlistStore();
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
+  const { user, signOut } = useAuth();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   return (
@@ -33,7 +37,6 @@ export function Header() {
           <SearchBar variant="header" />
         </div>
         <nav className="flex items-center gap-1 sm:gap-3 shrink-0">
-          {/* Mobile search toggle */}
           <Button
             variant="ghost"
             size="icon"
@@ -81,9 +84,32 @@ export function Header() {
               {theme === 'dark' ? 'Light mode' : 'Dark mode'}
             </TooltipContent>
           </Tooltip>
+          {user ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => signOut()}
+                  className="h-8 w-8 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="sr-only">Sign out</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Sign out</TooltipContent>
+            </Tooltip>
+          ) : (
+            <Link
+              to="/auth"
+              className="flex items-center gap-1.5 text-sm font-medium px-2.5 py-1.5 rounded-md text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 transition-all"
+            >
+              <LogIn className="h-4 w-4" />
+              <span className="hidden sm:inline">Sign In</span>
+            </Link>
+          )}
         </nav>
       </div>
-      {/* Mobile search dropdown */}
       {mobileSearchOpen && (
         <div className="md:hidden px-4 pb-3">
           <SearchBar variant="header" />
