@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { CHART_COLORS } from '@/lib/formatters';
+import { SourceAttribution } from '@/components/SourceAttribution';
 
 type TimeRange = '1M' | '3M' | '6M' | '1Y' | 'ALL';
 
@@ -275,9 +276,12 @@ export function PriceChart({ stock }: { stock: StockData }) {
         </ResponsiveContainer>
       </div>
 
-      <p className="text-xs text-muted-foreground italic">
-        Not technical analysis advice — factual price behavior only.
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground italic">
+          Not technical analysis advice — factual price behavior only.
+        </p>
+        <SourceAttribution source="Polygon.io" />
+      </div>
     </div>
   );
 }

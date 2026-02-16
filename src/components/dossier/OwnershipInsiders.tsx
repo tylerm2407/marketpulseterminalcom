@@ -2,6 +2,8 @@ import type { StockData } from '@/types/stock';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatLargeNumber, formatPercent, formatNumber, formatCompactNumber } from '@/lib/formatters';
+import { GlossaryTerm } from '@/components/GlossaryTerm';
+import { SourceAttribution } from '@/components/SourceAttribution';
 
 export function OwnershipInsiders({ stock }: { stock: StockData }) {
   const topHoldersPct = stock.institutionalHolders.slice(0, 3).reduce((s, h) => s + h.percentOwnership, 0);
@@ -128,11 +130,14 @@ export function OwnershipInsiders({ stock }: { stock: StockData }) {
         </div>
       )}
 
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <span>Short Interest: <span className="font-medium text-foreground font-mono">{stock.shortInterest.toFixed(1)}%</span></span>
-        {stock.dividendYield > 0 && (
-          <span>Dividend Yield: <span className="font-medium text-foreground font-mono">{stock.dividendYield.toFixed(2)}%</span></span>
-        )}
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center gap-4">
+          <span><GlossaryTerm termKey="shortInterest">Short Interest</GlossaryTerm>: <span className="font-medium text-foreground font-mono">{stock.shortInterest.toFixed(1)}%</span></span>
+          {stock.dividendYield > 0 && (
+            <span><GlossaryTerm termKey="dividendYield">Dividend Yield</GlossaryTerm>: <span className="font-medium text-foreground font-mono">{stock.dividendYield.toFixed(2)}%</span></span>
+          )}
+        </div>
+        <SourceAttribution source="Polygon.io" />
       </div>
     </div>
   );

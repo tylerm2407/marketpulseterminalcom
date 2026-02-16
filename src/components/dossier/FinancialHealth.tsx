@@ -4,6 +4,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, L
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatLargeNumber, formatMargin, CHART_COLORS } from '@/lib/formatters';
+import { GlossaryTerm } from '@/components/GlossaryTerm';
+import { SourceAttribution } from '@/components/SourceAttribution';
 
 export function FinancialHealth({ stock }: { stock: StockData }) {
   const [view, setView] = useState<'annual' | 'quarterly'>('annual');
@@ -77,30 +79,36 @@ export function FinancialHealth({ stock }: { stock: StockData }) {
             <MetricRow label="Gross Profit" data={data} accessor={p => formatLargeNumber(p.grossProfit)} />
             <MetricRow label="Operating Income" data={data} accessor={p => formatLargeNumber(p.operatingIncome)} />
             <MetricRow label="Net Income" data={data} accessor={p => formatLargeNumber(p.netIncome)} />
-            <MetricRow label="EPS" data={data} accessor={p => `$${p.eps.toFixed(2)}`} />
-            <MetricRow label="Op Margin" data={data} accessor={p => formatMargin(p.operatingMargin)} />
-            <MetricRow label="Net Margin" data={data} accessor={p => formatMargin(p.netMargin)} />
+            <MetricRow label="EPS" data={data} accessor={p => `$${p.eps.toFixed(2)}`} glossaryKey="eps" />
+            <MetricRow label="Op Margin" data={data} accessor={p => formatMargin(p.operatingMargin)} glossaryKey="operatingMargin" />
+            <MetricRow label="Net Margin" data={data} accessor={p => formatMargin(p.netMargin)} glossaryKey="netMargin" />
             <MetricRow label="Total Assets" data={data} accessor={p => formatLargeNumber(p.totalAssets)} />
             <MetricRow label="Total Debt" data={data} accessor={p => formatLargeNumber(p.totalDebt)} />
             <MetricRow label="Cash" data={data} accessor={p => formatLargeNumber(p.cashAndEquivalents)} />
             <MetricRow label="Op Cash Flow" data={data} accessor={p => formatLargeNumber(p.operatingCashFlow)} />
-            <MetricRow label="Free Cash Flow" data={data} accessor={p => formatLargeNumber(p.freeCashFlow)} />
-            <MetricRow label="Current Ratio" data={data} accessor={p => p.currentRatio.toFixed(2)} />
+            <MetricRow label="Free Cash Flow" data={data} accessor={p => formatLargeNumber(p.freeCashFlow)} glossaryKey="freeCashFlow" />
+            <MetricRow label="Current Ratio" data={data} accessor={p => p.currentRatio.toFixed(2)} glossaryKey="currentRatio" />
           </TableBody>
         </Table>
+      </div>
+      <div className="flex justify-end mt-2">
+        <SourceAttribution source="Polygon.io" />
       </div>
     </div>
   );
 }
 
-function MetricRow({ label, data, accessor }: {
+function MetricRow({ label, data, accessor, glossaryKey }: {
   label: string;
   data: StockData['financials']['annual'];
   accessor: (p: StockData['financials']['annual'][0]) => string;
+  glossaryKey?: string;
 }) {
   return (
     <TableRow>
-      <TableCell className="text-xs font-medium text-muted-foreground">{label}</TableCell>
+      <TableCell className="text-xs font-medium text-muted-foreground">
+        {glossaryKey ? <GlossaryTerm termKey={glossaryKey}>{label}</GlossaryTerm> : label}
+      </TableCell>
       {data.map(p => (
         <TableCell key={p.period} className="text-xs text-right font-mono">{accessor(p)}</TableCell>
       ))}
