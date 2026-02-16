@@ -1,14 +1,16 @@
 import { Link } from 'react-router-dom';
-import { BarChart3, ArrowUp, ArrowDown, Shield, Search, TrendingUp, FileText, Eye, Star } from 'lucide-react';
+import { BarChart3, ArrowUp, ArrowDown, Shield, FileText, Eye, Star, Clock } from 'lucide-react';
 import { SearchBar } from '@/components/search/SearchBar';
 import { Footer } from '@/components/layout/Footer';
 import { TickerMarquee } from '@/components/TickerMarquee';
 import { Sparkline } from '@/components/Sparkline';
+import { Skeleton } from '@/components/ui/skeleton';
 import { stocksList } from '@/data/mockStocks';
 import { useWatchlistQuotes, useSparklines } from '@/hooks/useStockData';
 import { formatCurrency, formatPercent, formatLargeNumber } from '@/lib/formatters';
 import { Badge } from '@/components/ui/badge';
 import { useWatchlistStore } from '@/stores/watchlistStore';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 
 const EXPLORE_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'TSLA'];
 
@@ -16,9 +18,11 @@ const Index = () => {
   const { data: liveQuotes } = useWatchlistQuotes(EXPLORE_TICKERS);
   const { data: sparklines } = useSparklines(EXPLORE_TICKERS);
   const { addTicker, removeTicker, isWatching } = useWatchlistStore();
+  const { items: recentlyViewed } = useRecentlyViewed();
   const quoteMap = new Map((liveQuotes || []).map(q => [q.ticker, q]));
   const sparkMap = new Map((sparklines || []).map(s => [s.symbol, s.prices]));
   const trendingStocks = stocksList.slice(0, 6);
+  const isLoadingCards = !liveQuotes;
 
   return (
     <div className="min-h-screen bg-background pb-16 sm:pb-0">
@@ -45,14 +49,50 @@ const Index = () => {
         <TickerMarquee variant="hero" />
       </section>
 
+      {/* Recently Viewed */}
+      {recentlyViewed.length > 0 && (
+        <section className="container mx-auto px-4 pt-10 pb-0 max-w-5xl">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-foreground">Recently Viewed</h2>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+            {recentlyViewed.map(item => (
+              <Link
+                key={item.ticker}
+                to={`/stock/${item.ticker}`}
+                className="shrink-0 bg-card rounded-lg border border-border px-3 py-2 hover:border-accent/40 transition-colors flex items-center gap-2"
+              >
+                <span className="font-bold text-xs font-mono text-foreground">{item.ticker}</span>
+                <span className="text-xs text-muted-foreground truncate max-w-[120px]">{item.name}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Trending */}
-      <section className="container mx-auto px-4 py-12 max-w-5xl">
+      <section className="container mx-auto px-4 py-10 max-w-5xl">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-foreground">Explore Stocks</h2>
           <span className="text-[10px] sm:text-xs text-muted-foreground">All price data is delayed ~15 minutes</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {trendingStocks.map(stock => {
+          {isLoadingCards
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-card rounded-lg border border-border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-5 w-16" />
+                    <Skeleton className="h-4 w-14" />
+                  </div>
+                  <Skeleton className="h-4 w-32" />
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                </div>
+              ))
+            : trendingStocks.map(stock => {
             const live = quoteMap.get(stock.ticker);
             const sparkData = sparkMap.get(stock.ticker);
             const price = live?.price ?? stock.price;
