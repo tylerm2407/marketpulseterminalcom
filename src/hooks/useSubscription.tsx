@@ -34,6 +34,21 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Check if user is linked from Nova Wealth (automatic Pro)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('nova_wealth_linked')
+        .eq('user_id', user?.id ?? '')
+        .single();
+
+      if (profile?.nova_wealth_linked) {
+        setIsPro(true);
+        setSubscriptionEnd(null);
+        setLoading(false);
+        return;
+      }
+
+      // Otherwise check Stripe subscription
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
@@ -49,7 +64,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [session?.access_token]);
+  }, [session?.access_token, user?.id]);
 
   useEffect(() => {
     checkSubscription();
