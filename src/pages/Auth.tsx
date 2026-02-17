@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { BarChart3, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { BarChart3, Mail, Lock, ArrowRight, Loader2, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 
 export default function Auth() {
@@ -101,6 +102,25 @@ export default function Auth() {
               )}
             </Button>
           </form>
+
+          <div className="relative my-5">
+            <Separator />
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-3 text-xs text-muted-foreground">
+              OR
+            </span>
+          </div>
+
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => {
+              window.location.href = 'https://novawealthhqcom.lovable.app/auth?redirect_app=marketpulse';
+            }}
+          >
+            <ExternalLink className="h-4 w-4" />
+            Login via Nova Wealth
+          </Button>
+
           <div className="mt-4 text-center text-sm text-muted-foreground">
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
             <button

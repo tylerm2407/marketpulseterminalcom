@@ -20,6 +20,7 @@ import Pricing from "./pages/Pricing";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { OnboardingTour } from "@/components/OnboardingTour";
+import { NovaWealthAuthHandler } from "@/components/NovaWealthAuthHandler";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <NovaWealthAuthHandler />
             <Header />
             <Routes>
               <Route path="/" element={<Index />} />
