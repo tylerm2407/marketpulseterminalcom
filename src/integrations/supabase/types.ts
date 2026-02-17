@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage: {
+        Row: {
+          id: string
+          last_updated_at: string
+          period_start: string
+          total_cost_cents: number
+          total_requests: number
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_updated_at?: string
+          period_start: string
+          total_cost_cents?: number
+          total_requests?: number
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_updated_at?: string
+          period_start?: string
+          total_cost_cents?: number
+          total_requests?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       api_cache: {
         Row: {
           cache_key: string

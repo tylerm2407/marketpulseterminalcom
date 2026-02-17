@@ -1,4 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import {
+  checkAndRecordAiUsage,
+  aiLimitResponse,
+  getUserIdFromRequest,
+  COST_ESTIMATES,
+} from "../_shared/aiUsageGuard.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -6,9 +12,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -17,17 +21,14 @@ serve(async (req) => {
     const { query } = await req.json();
     if (!query) throw new Error('query is required');
 
-    const systemPrompt = `You are a stock screener assistant for MarketPulse. Given a natural language query, return a JSON array of stock tickers that match the criteria. Use your knowledge of major US stocks (NASDAQ & NYSE).
+    // ── AI usage guard ──
+    const userId = await getUserIdFromRequest(req);
+    if (userId) {
+      const guard = await checkAndRecordAiUsage(userId, COST_ESTIMATES.SCREENER);
+      if (guard !== "ok") return aiLimitResponse(corsHeaders, guard);
+    }
 
-Rules:
-- Return ONLY a JSON object with "results" array of objects with: ticker, name, reason (brief 1-line explanation of why it matches)
-- Return 5-15 results max
-- Only include real, currently listed US stocks
-- Be accurate about financial metrics (P/E ratios, market caps, sectors, etc.)
-- If you're unsure about exact current values, note that in the reason
-
-Example response:
-{"results":[{"ticker":"AAPL","name":"Apple Inc.","reason":"P/E ~30x, strong earnings growth, tech sector leader"},{"ticker":"MSFT","name":"Microsoft Corp.","reason":"P/E ~35x, consistent revenue growth, cloud dominance"}]}`;
+    const systemPrompt = `You are a stock screener assistant for MarketPulse. Given a natural language query, return a JSON array of stock tickers that match the criteria. Use your knowledge of major US stocks (NASDAQ & NYSE).\n\nRules:\n- Return ONLY a JSON object with "results" array of objects with: ticker, name, reason (brief 1-line explanation of why it matches)\n- Return 5-15 results max\n- Only include real, currently listed US stocks\n- Be accurate about financial metrics (P/E ratios, market caps, sectors, etc.)\n- If you're unsure about exact current values, note that in the reason\n\nExample response:\n{"results":[{"ticker":"AAPL","name":"Apple Inc.","reason":"P/E ~30x, strong earnings growth, tech sector leader"},{"ticker":"MSFT","name":"Microsoft Corp.","reason":"P/E ~35x, consistent revenue growth, cloud dominance"}]}`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -77,14 +78,12 @@ Example response:
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again in a moment.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: 'AI usage limit reached. Please add credits.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       const errText = await response.text();
@@ -106,15 +105,13 @@ Example response:
     }
 
     return new Response(JSON.stringify({ results }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('stock-screener error:', message);
     return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });

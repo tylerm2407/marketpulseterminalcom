@@ -1,4 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import {
+  checkAndRecordAiUsage,
+  aiLimitResponse,
+  getUserIdFromRequest,
+  COST_ESTIMATES,
+} from "../_shared/aiUsageGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +17,13 @@ serve(async (req) => {
 
   try {
     const { ticker, companyName, riskTitle, riskDescription, riskCategory, riskSeverity } = await req.json();
+
+    // ── AI usage guard ──
+    const userId = await getUserIdFromRequest(req);
+    if (userId) {
+      const guard = await checkAndRecordAiUsage(userId, COST_ESTIMATES.RISK_EXPLAIN);
+      if (guard !== "ok") return aiLimitResponse(corsHeaders, guard);
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -30,13 +43,7 @@ serve(async (req) => {
           },
           {
             role: "user",
-            content: `Company: ${companyName} (${ticker})
-Risk: ${riskTitle}
-Category: ${riskCategory}
-Severity: ${riskSeverity}
-Brief description: ${riskDescription}
-
-Explain this risk in more detail.`,
+            content: `Company: ${companyName} (${ticker})\nRisk: ${riskTitle}\nCategory: ${riskCategory}\nSeverity: ${riskSeverity}\nBrief description: ${riskDescription}\n\nExplain this risk in more detail.`,
           },
         ],
       }),
@@ -45,14 +52,12 @@ Explain this risk in more detail.`,
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited — please try again shortly." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();
@@ -69,8 +74,7 @@ Explain this risk in more detail.`,
   } catch (e) {
     console.error("risk-explain error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
