@@ -24,6 +24,10 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
+    const body = await req.json().catch(() => ({}));
+    const referralCode = body.referral_code || null;
+    const referrerId = body.referrer_id || null;
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
@@ -36,7 +40,7 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "http://localhost:3000";
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [
@@ -51,7 +55,19 @@ serve(async (req) => {
       },
       success_url: `${origin}/pricing?success=true`,
       cancel_url: `${origin}/pricing?canceled=true`,
-    });
+    };
+
+    if (referralCode && referrerId) {
+      sessionParams.discounts = [{ coupon: "p8NAz3nu" }];
+      sessionParams.metadata = {
+        referrer_id: referrerId,
+        referral_code: referralCode,
+      };
+      // Don't combine trial with coupon discount — remove trial when referral applied
+      delete sessionParams.subscription_data.trial_period_days;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
