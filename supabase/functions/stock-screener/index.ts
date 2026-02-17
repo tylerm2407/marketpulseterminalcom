@@ -23,9 +23,11 @@ serve(async (req) => {
 
     // ── AI usage guard ──
     const userId = await getUserIdFromRequest(req);
+    let aiNotification: any = undefined;
     if (userId) {
       const guard = await checkAndRecordAiUsage(userId, COST_ESTIMATES.SCREENER);
-      if (guard !== "ok") return aiLimitResponse(corsHeaders, guard);
+      if (guard.status === "blocked") return aiLimitResponse(corsHeaders, guard);
+      aiNotification = guard.notification;
     }
 
     const systemPrompt = `You are a stock screener assistant for MarketPulse. Given a natural language query, return a JSON array of stock tickers that match the criteria. Use your knowledge of major US stocks (NASDAQ & NYSE).\n\nRules:\n- Return ONLY a JSON object with "results" array of objects with: ticker, name, reason (brief 1-line explanation of why it matches)\n- Return 5-15 results max\n- Only include real, currently listed US stocks\n- Be accurate about financial metrics (P/E ratios, market caps, sectors, etc.)\n- If you're unsure about exact current values, note that in the reason\n\nExample response:\n{"results":[{"ticker":"AAPL","name":"Apple Inc.","reason":"P/E ~30x, strong earnings growth, tech sector leader"},{"ticker":"MSFT","name":"Microsoft Corp.","reason":"P/E ~35x, consistent revenue growth, cloud dominance"}]}`;
@@ -104,7 +106,7 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ results }), {
+    return new Response(JSON.stringify({ results, ...(aiNotification && { ai_usage_notification: aiNotification }) }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {

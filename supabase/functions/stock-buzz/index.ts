@@ -25,9 +25,11 @@ serve(async (req) => {
 
     // ── AI usage guard ──
     const userId = await getUserIdFromRequest(req);
+    let aiNotification: any = undefined;
     if (userId) {
       const guard = await checkAndRecordAiUsage(userId, COST_ESTIMATES.STOCK_BUZZ);
-      if (guard !== "ok") return aiLimitResponse(corsHeaders, guard);
+      if (guard.status === "blocked") return aiLimitResponse(corsHeaders, guard);
+      aiNotification = guard.notification;
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -69,7 +71,7 @@ serve(async (req) => {
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "No buzz available.";
 
-    return new Response(JSON.stringify({ content, generatedAt: new Date().toISOString() }), {
+    return new Response(JSON.stringify({ content, generatedAt: new Date().toISOString(), ...(aiNotification && { ai_usage_notification: aiNotification }) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
