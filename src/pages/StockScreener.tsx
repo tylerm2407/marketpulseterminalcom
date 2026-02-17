@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { toast } from '@/hooks/use-toast';
 import { useSubscription } from '@/hooks/useSubscription';
+import { handleAiUsageNotification } from '@/lib/aiUsageNotifications';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 
 interface ScreenerResult {
@@ -59,7 +60,7 @@ const StockScreener = () => {
         toast({ title: 'Screener Error', description: data.error, variant: 'destructive' });
         return;
       }
-
+      handleAiUsageNotification(data);
       setResults(data?.results || []);
       if (!data?.results?.length) {
         toast({ title: 'No matches', description: 'Try broadening your criteria.' });

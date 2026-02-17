@@ -1,32 +1,43 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
-// ─── Cost caps (in cents) ───────────────────────────────────
-export const AI_COST_CAP_HARD_CENTS = 1000; // $10.00
-export const AI_COST_CAP_SOFT_CENTS = 500;  // $5.00
+// ─── Cost cap (in cents) ────────────────────────────────────
+export const AI_COST_CAP_CENTS = 1000; // $10.00 per user per month
+
+// ─── Notification thresholds (in cents) ─────────────────────
+const MILESTONE_HALF = 500;          // $5.00 — 50%
+const MILESTONE_THREE_QUARTER = 750; // $7.50 — 75%
 
 // ─── Per-call cost estimates (cents) ────────────────────────
-// Lovable AI gateway (Gemini Flash etc.) — ~0.15¢/1k input, ~0.6¢/1k output
-// Conservative estimate: average call ≈ 2–5 cents
 export function estimateChatCostCents(inputTokens: number, outputTokens: number): number {
-  // Gemini Flash pricing approximation
   const inputCost = (inputTokens / 1000) * 0.15;
   const outputCost = (outputTokens / 1000) * 0.6;
   return Math.max(1, Math.ceil(inputCost + outputCost));
 }
 
-// Fixed estimates when token counts aren't known ahead of time
 export const COST_ESTIMATES = {
-  CHAT_DEFAULT: 3,       // ~3 cents for a typical chat completion
-  SCREENER: 4,           // slightly more tokens
-  WATCHLIST_SUMMARY: 5,  // longer output
+  CHAT_DEFAULT: 3,
+  SCREENER: 4,
+  WATCHLIST_SUMMARY: 5,
   STOCK_BUZZ: 3,
-  RISK_EXPLAIN: 2,       // short explanation
-  STOCK_TWEETS: 4,       // Grok call, similar cost
-  EMBEDDING: 1,          // if ever needed
+  RISK_EXPLAIN: 2,
+  STOCK_TWEETS: 4,
+  EMBEDDING: 1,
 } as const;
 
+// ─── Notification type returned to frontend ─────────────────
+export interface AiUsageNotification {
+  type: "half" | "three_quarter" | "limit_reached";
+  message: string;
+  usedDollars: number;
+  limitDollars: number;
+  resetDate: string; // ISO date string for start of next month
+}
+
 // ─── Guard result ───────────────────────────────────────────
-export type AiGuardResult = "ok" | "soft_cap" | "hard_cap";
+export interface AiGuardResult {
+  status: "ok" | "blocked";
+  notification?: AiUsageNotification;
+}
 
 function getSupabaseAdmin() {
   const url = Deno.env.get("SUPABASE_URL");
@@ -40,9 +51,45 @@ function getCurrentPeriodStart(): string {
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-01`;
 }
 
+function getNextPeriodStart(): string {
+  const now = new Date();
+  const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  return nextMonth.toISOString().split("T")[0];
+}
+
+function buildNotification(
+  costBefore: number,
+  costAfter: number
+): AiUsageNotification | undefined {
+  const resetDate = getNextPeriodStart();
+  const limitDollars = AI_COST_CAP_CENTS / 100;
+
+  // Check milestones crossed (before < threshold <= after)
+  if (costBefore < MILESTONE_HALF && costAfter >= MILESTONE_HALF) {
+    return {
+      type: "half",
+      message: "You've used 50% of your monthly AI credits ($5.00 of $10.00). Use them wisely!",
+      usedDollars: costAfter / 100,
+      limitDollars,
+      resetDate,
+    };
+  }
+
+  if (costBefore < MILESTONE_THREE_QUARTER && costAfter >= MILESTONE_THREE_QUARTER) {
+    return {
+      type: "three_quarter",
+      message: "You've used 75% of your monthly AI credits ($7.50 of $10.00). Consider saving the rest for important queries.",
+      usedDollars: costAfter / 100,
+      limitDollars,
+      resetDate,
+    };
+  }
+
+  return undefined;
+}
+
 /**
  * Check and record AI usage for a user. Must be called BEFORE any external AI call.
- * Uses upsert + atomic increment to avoid race conditions.
  */
 export async function checkAndRecordAiUsage(
   userId: string,
@@ -67,24 +114,27 @@ export async function checkAndRecordAiUsage(
 
   if (error || !data) {
     console.error("ai_usage read error:", error);
-    // Fail open cautiously — allow but log
-    return "ok";
+    return { status: "ok" };
   }
 
   const currentCost = data.total_cost_cents as number;
   const projectedCost = currentCost + estimatedCostCents;
 
-  // Hard cap check
-  if (projectedCost > AI_COST_CAP_HARD_CENTS) {
-    return "hard_cap";
+  // Hard cap — block entirely
+  if (projectedCost > AI_COST_CAP_CENTS) {
+    return {
+      status: "blocked",
+      notification: {
+        type: "limit_reached",
+        message: `You've used all your monthly AI credits ($10.00). Your credits will reset on ${getNextPeriodStart()}.`,
+        usedDollars: currentCost / 100,
+        limitDollars: AI_COST_CAP_CENTS / 100,
+        resetDate: getNextPeriodStart(),
+      },
+    };
   }
 
-  // Soft cap check (also blocking)
-  if (currentCost >= AI_COST_CAP_SOFT_CENTS) {
-    return "soft_cap";
-  }
-
-  // Under budget — increment atomically via RPC or direct update
+  // Under budget — increment
   const currentRequests = (data.total_requests as number) || 0;
   const { error: updateError } = await sb
     .from("ai_usage")
@@ -100,18 +150,20 @@ export async function checkAndRecordAiUsage(
     console.error("ai_usage update error:", updateError);
   }
 
-  return "ok";
+  // Check if we crossed a milestone
+  const notification = buildNotification(currentCost, projectedCost);
+  return { status: "ok", notification };
 }
 
-/** Standard JSON error response for capped users */
-export function aiLimitResponse(corsHeaders: Record<string, string>, capType: AiGuardResult) {
-  const limitDollars = capType === "hard_cap" ? 10 : 5;
+/** Standard JSON error response for blocked users */
+export function aiLimitResponse(corsHeaders: Record<string, string>, guard: AiGuardResult) {
   return new Response(
     JSON.stringify({
       error: "ai_limit_reached",
-      message:
-        "You've reached your monthly AI usage limit. To keep costs under control, further AI features are paused for this month.",
-      limit_dollars: limitDollars,
+      message: guard.notification?.message ||
+        "You've reached your monthly AI usage limit. Further AI features are paused for this month.",
+      limit_dollars: AI_COST_CAP_CENTS / 100,
+      reset_date: guard.notification?.resetDate || getNextPeriodStart(),
     }),
     {
       status: 429,
@@ -122,14 +174,12 @@ export function aiLimitResponse(corsHeaders: Record<string, string>, capType: Ai
 
 /**
  * Extract user_id from the Authorization header (JWT).
- * Returns null if no valid token / anonymous.
  */
 export async function getUserIdFromRequest(req: Request): Promise<string | null> {
   const authHeader = req.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.replace("Bearer ", "");
 
-  // Don't validate against anon key
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
   if (token === anonKey) return null;
 

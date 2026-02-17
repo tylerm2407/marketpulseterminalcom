@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, Sparkles, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleAiUsageNotification } from '@/lib/aiUsageNotifications';
 
 interface LatestBuzzProps {
   ticker: string;
@@ -18,6 +19,7 @@ async function fetchBuzz(ticker: string, companyName: string) {
 
   if (error) throw new Error(error.message || 'Failed to fetch buzz');
   if (data?.error) throw new Error(data.error);
+  handleAiUsageNotification(data);
   return data as { content: string; generatedAt: string };
 }
 

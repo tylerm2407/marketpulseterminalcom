@@ -7,6 +7,7 @@ import { RefreshCw, Twitter, AlertCircle, ThumbsUp, Repeat2, TrendingUp, Trendin
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useSubscription } from '@/hooks/useSubscription';
+import { handleAiUsageNotification } from '@/lib/aiUsageNotifications';
 import { useNavigate } from 'react-router-dom';
 
 interface Tweet {
@@ -31,6 +32,7 @@ async function fetchTweets(ticker: string, companyName: string) {
 
   if (error) throw new Error(error.message || 'Failed to fetch tweets');
   if (data?.error) throw new Error(data.error);
+  handleAiUsageNotification(data);
   return data as { tweets: Tweet[]; generatedAt: string };
 }
 

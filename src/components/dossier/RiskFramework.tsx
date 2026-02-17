@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Shield, TrendingDown, Zap, Database, Sparkles, Loader2, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { handleAiUsageNotification } from '@/lib/aiUsageNotifications';
 
 const categoryConfig = {
   business: { icon: TrendingDown, label: 'Business' },
@@ -53,7 +54,7 @@ function RiskCard({ risk, stock }: { risk: RiskItem; stock: StockData }) {
 
       if (fnError) throw new Error(fnError.message);
       if (data?.error) throw new Error(data.error);
-
+      handleAiUsageNotification(data);
       setExplanation(data.explanation);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load explanation');

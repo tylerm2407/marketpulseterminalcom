@@ -74,9 +74,11 @@ serve(async (req) => {
 
     // ── AI usage guard (only if cache miss) ──
     const userId = await getUserIdFromRequest(req);
+    let aiNotification: any = undefined;
     if (userId) {
       const guard = await checkAndRecordAiUsage(userId, COST_ESTIMATES.STOCK_TWEETS);
-      if (guard !== "ok") return aiLimitResponse(corsHeaders, guard);
+      if (guard.status === "blocked") return aiLimitResponse(corsHeaders, guard);
+      aiNotification = guard.notification;
     }
 
     const GROK_API_KEY = Deno.env.get("GROK_API_KEY");
@@ -129,7 +131,7 @@ serve(async (req) => {
       tweets = [];
     }
 
-    const result = { tweets, generatedAt: new Date().toISOString() };
+    const result = { tweets, generatedAt: new Date().toISOString(), ...(aiNotification && { ai_usage_notification: aiNotification }) };
     if (tweets.length > 0) await setCache(cacheKey, result);
 
     return new Response(JSON.stringify(result), {
