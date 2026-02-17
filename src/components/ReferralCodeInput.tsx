@@ -3,7 +3,7 @@ import { CheckCircle, AlertCircle, Loader2, Tag } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ReferralValidation {
   valid: boolean;
@@ -17,14 +17,13 @@ interface ReferralCodeInputProps {
   onValidated: (result: ReferralValidation | null) => void;
 }
 
-const NOVA_WEALTH_URL = 'https://dbwuegchdysuocbpsprd.supabase.co/functions/v1';
-
 export function ReferralCodeInput({ userEmail, onValidated }: ReferralCodeInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [discountPercent, setDiscountPercent] = useState(0);
 
   const handleValidate = async () => {
     const trimmed = code.trim().toUpperCase();
@@ -35,20 +34,19 @@ export function ReferralCodeInput({ userEmail, onValidated }: ReferralCodeInputP
     setErrorMsg('');
 
     try {
-      const res = await fetch(`${NOVA_WEALTH_URL}/validate-referral`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ referral_code: trimmed, user_email: userEmail }),
+      const { data, error } = await supabase.functions.invoke('referral-proxy', {
+        body: { action: 'validate', referral_code: trimmed, user_email: userEmail },
       });
 
-      const data = await res.json();
+      if (error) throw error;
 
-      if (res.ok && data.valid) {
+      if (data?.valid) {
         setStatus('valid');
+        setDiscountPercent(data.discount_percent || 20);
         onValidated({ valid: true, referrer_id: data.referrer_id, code: data.code, discount_percent: data.discount_percent });
       } else {
         setStatus('invalid');
-        setErrorMsg(data.error || 'Invalid referral code');
+        setErrorMsg(data?.error || 'Invalid referral code');
         onValidated(null);
       }
     } catch {
@@ -64,6 +62,7 @@ export function ReferralCodeInput({ userEmail, onValidated }: ReferralCodeInputP
     setCode('');
     setStatus('idle');
     setErrorMsg('');
+    setDiscountPercent(0);
     onValidated(null);
   };
 
@@ -96,7 +95,7 @@ export function ReferralCodeInput({ userEmail, onValidated }: ReferralCodeInputP
           {status === 'valid' && (
             <div className="flex items-center gap-1.5 text-xs text-gain">
               <CheckCircle className="h-3.5 w-3.5" />
-              25% discount will be applied!
+              {discountPercent}% off your first 3 paid months!
             </div>
           )}
           {status === 'invalid' && (

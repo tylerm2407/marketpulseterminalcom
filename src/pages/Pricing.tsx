@@ -45,17 +45,14 @@ export default function Pricing() {
 
     try {
       const ref = JSON.parse(stored);
-      fetch('https://dbwuegchdysuocbpsprd.supabase.co/functions/v1/track-referral', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      supabase.functions.invoke('referral-proxy', {
+        body: {
+          action: 'track',
           referral_code: ref.code,
           referrer_id: ref.referrer_id,
           referred_email: ref.email,
           app_name: 'MarketPulseTerminal',
-          subscription_amount: 1999,
-          discount_amount: 500,
-        }),
+        },
       }).then(() => sessionStorage.removeItem('mp_referral'))
         .catch(console.error);
     } catch { /* ignore */ }
@@ -211,7 +208,7 @@ export default function Pricing() {
                 <>
                   <Button className="w-full mt-4 bg-accent hover:bg-accent/90 text-accent-foreground" onClick={handleCheckout} disabled={checkoutLoading}>
                     {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
-                    {referral ? 'Subscribe — 25% Off' : 'Start Free Trial'}
+                    {referral ? 'Start Trial — 20% Off After' : 'Start Free Trial'}
                   </Button>
                   {user && (
                     <ReferralCodeInput userEmail={user.email || ''} onValidated={setReferral} />

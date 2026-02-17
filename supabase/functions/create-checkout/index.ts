@@ -57,14 +57,13 @@ serve(async (req) => {
       cancel_url: `${origin}/pricing?canceled=true`,
     };
 
+    // Strategy 3: Trial + Post-Trial Discount — keep trial, add coupon
     if (referralCode && referrerId) {
-      sessionParams.discounts = [{ coupon: "p8NAz3nu" }];
+      sessionParams.discounts = [{ coupon: "jPSNu7Zh" }];
       sessionParams.metadata = {
         referrer_id: referrerId,
         referral_code: referralCode,
       };
-      // Don't combine trial with coupon discount — remove trial when referral applied
-      delete sessionParams.subscription_data.trial_period_days;
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
