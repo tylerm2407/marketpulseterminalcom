@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, X, Crown, Zap, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ReferralCodeInput, type ReferralValidation } from '@/components/ReferralCodeInput';
 
 const features = [
   { name: 'Stock Dossiers & Charts', free: true, pro: true },
@@ -30,13 +31,35 @@ export default function Pricing() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [referral, setReferral] = useState<ReferralValidation | null>(null);
 
   const success = searchParams.get('success') === 'true';
 
-  // Refresh subscription on success redirect
-  if (success && !isPro) {
+  // Track referral on successful payment redirect
+  useEffect(() => {
+    if (!success) return;
     refreshSubscription();
-  }
+
+    const stored = sessionStorage.getItem('mp_referral');
+    if (!stored) return;
+
+    try {
+      const ref = JSON.parse(stored);
+      fetch('https://dbwuegchdysuocbpsprd.supabase.co/functions/v1/track-referral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          referral_code: ref.code,
+          referrer_id: ref.referrer_id,
+          referred_email: ref.email,
+          app_name: 'MarketPulseTerminal',
+          subscription_amount: 1999,
+          discount_amount: 500,
+        }),
+      }).then(() => sessionStorage.removeItem('mp_referral'))
+        .catch(console.error);
+    } catch { /* ignore */ }
+  }, [success]);
 
   const handleCheckout = async () => {
     if (!user) {
@@ -45,8 +68,18 @@ export default function Pricing() {
     }
     setCheckoutLoading(true);
     try {
+      // Store referral data for post-checkout tracking
+      if (referral) {
+        sessionStorage.setItem('mp_referral', JSON.stringify({
+          code: referral.code,
+          referrer_id: referral.referrer_id,
+          email: user.email,
+        }));
+      }
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         headers: { Authorization: `Bearer ${session?.access_token}` },
+        body: referral ? { referral_code: referral.code, referrer_id: referral.referrer_id } : {},
       });
       if (error) throw error;
       if (data?.url) {
@@ -175,10 +208,15 @@ export default function Pricing() {
                   )}
                 </div>
               ) : (
-                <Button className="w-full mt-4 bg-accent hover:bg-accent/90 text-accent-foreground" onClick={handleCheckout} disabled={checkoutLoading}>
-                  {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
-                  Start Free Trial
-                </Button>
+                <>
+                  <Button className="w-full mt-4 bg-accent hover:bg-accent/90 text-accent-foreground" onClick={handleCheckout} disabled={checkoutLoading}>
+                    {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
+                    {referral ? 'Subscribe — 25% Off' : 'Start Free Trial'}
+                  </Button>
+                  {user && (
+                    <ReferralCodeInput userEmail={user.email || ''} onValidated={setReferral} />
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
