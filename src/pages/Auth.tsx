@@ -114,7 +114,7 @@ export default function Auth() {
             variant="outline"
             className="w-full gap-2"
             onClick={() => {
-              window.location.href = 'https://novawealthhqcom.lovable.app/auth?redirect_app=marketpulse';
+              window.location.href = 'https://novawealthhqcom.lovable.app/login?redirect_app=marketpulse';
             }}
           >
             <ExternalLink className="h-4 w-4" />
