@@ -1,0 +1,8 @@
+lane :beta do
+  build_ios_app(
+    workspace: "ios/App/App.xcworkspace",
+    scheme: "App",
+    export_method: "app-store"
+  )
+  upload_to_testflight
+end
