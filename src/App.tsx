@@ -18,6 +18,7 @@ import Portfolio from "./pages/Portfolio";
 import PriceAlerts from "./pages/PriceAlerts";
 import Pricing from "./pages/Pricing";
 import Auth from "./pages/Auth";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { NovaWealthAuthHandler } from "@/components/NovaWealthAuthHandler";
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/alerts" element={<PriceAlerts />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <MobileBottomNav />
