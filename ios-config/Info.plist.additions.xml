@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  iOS Info.plist additions for MarketPulseTerminal
+  ─────────────────────────────────────────────────
+  After running `npx cap add ios`, merge these keys into:
+  ios/App/App/Info.plist
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+  <!-- ── App Identity ── -->
+  <key>CFBundleDisplayName</key>
+  <string>MarketPulseTerminal</string>
+
+  <key>CFBundleIdentifier</key>
+  <string>com.novawealth.marketpulseterminal</string>
+
+  <key>CFBundleVersion</key>
+  <string>1</string>
+
+  <key>CFBundleShortVersionString</key>
+  <string>1.0.0</string>
+
+  <!-- ── Privacy Descriptions (required by App Store) ── -->
+  <key>NSUserTrackingUsageDescription</key>
+  <string>MarketPulseTerminal uses analytics to improve app performance and personalise your experience.</string>
+
+  <key>NSFaceIDUsageDescription</key>
+  <string>Use Face ID to quickly and securely sign in to your account.</string>
+
+  <!-- ── Push Notifications ── -->
+  <key>UIBackgroundModes</key>
+  <array>
+    <string>remote-notification</string>
+  </array>
+
+  <!-- ── Deep Linking URL Scheme ── -->
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>com.novawealth.marketpulseterminal</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>marketpulse</string>
+      </array>
+    </dict>
+  </array>
+
+  <!-- ── Associated Domains (Universal Links) ── -->
+  <!-- Also add com.apple.developer.associated-domains in Xcode Signing & Capabilities -->
+  <!-- Value: applinks:marketpulseterminal.com -->
+
+  <!-- ── Network / ATS ── -->
+  <key>NSAppTransportSecurity</key>
+  <dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <false/>
+    <key>NSExceptionDomains</key>
+    <dict>
+      <key>marketpulseterminal.com</key>
+      <dict>
+        <key>NSExceptionAllowsInsecureHTTPLoads</key>
+        <false/>
+        <key>NSIncludesSubdomains</key>
+        <true/>
+      </dict>
+    </dict>
+  </dict>
+
+  <!-- ── UI ── -->
+  <key>UILaunchStoryboardName</key>
+  <string>LaunchScreen</string>
+
+  <key>UIStatusBarStyle</key>
+  <string>UIStatusBarStyleLightContent</string>
+
+  <key>UIRequiresFullScreen</key>
+  <true/>
+
+  <key>UISupportedInterfaceOrientations</key>
+  <array>
+    <string>UIInterfaceOrientationPortrait</string>
+    <string>UIInterfaceOrientationLandscapeLeft</string>
+    <string>UIInterfaceOrientationLandscapeRight</string>
+  </array>
+
+</dict>
+</plist>

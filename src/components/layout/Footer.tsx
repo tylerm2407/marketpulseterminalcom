@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export function Footer() {
   return (
     <footer className="border-t border-border bg-muted/50 py-4 mt-8">
@@ -8,7 +10,13 @@ export function Footer() {
           before making investment decisions.{' '}
           <span className="underline cursor-pointer hover:text-foreground transition-colors">See Methodology</span>
         </p>
+        <div className="flex items-center justify-center gap-4 mt-2">
+          <Link to="/privacy" className="text-xs text-muted-foreground hover:text-foreground transition-colors underline">
+            Privacy Policy
+          </Link>
+        </div>
       </div>
     </footer>
   );
 }
+
