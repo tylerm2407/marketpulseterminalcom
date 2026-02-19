@@ -34,12 +34,9 @@ jobs:
       - name: Install Capacitor CLI
         run: npm install -g @capacitor/cli
 
-      # ── 5. Add & sync iOS platform ────────────────────────────────────
+      # ── 5. Add iOS platform (skip pod install, we do it after fixing target)
       - name: Add iOS platform
-        run: npx cap add ios
-
-      - name: Sync Capacitor
-        run: npx cap sync ios
+        run: npx cap add ios || true
 
       # ── 6. Set minimum iOS deployment target ──────────────────────────
       - name: Set iOS deployment target
@@ -52,6 +49,10 @@ jobs:
         run: |
           cd ios/App
           pod install --repo-update
+
+      # ── 8. Sync Capacitor ──────────────────────────────────────────────
+      - name: Sync Capacitor
+        run: npx cap sync ios
 
       # ── 7. Import signing certificate ─────────────────────────────────
       #   These secrets must be configured in GitHub → Settings → Secrets
