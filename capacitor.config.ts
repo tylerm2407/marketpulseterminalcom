@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.novawealth.marketpulseterminal',
-  appName: 'MarketPulseTerminal',
+  appName: 'MarketPulse',
   webDir: 'dist',
   server: {
     url: 'https://marketpulseterminal.com',

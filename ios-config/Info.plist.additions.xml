@@ -12,7 +12,7 @@
 
   <!-- ── App Identity ── -->
   <key>CFBundleDisplayName</key>
-  <string>MarketPulseTerminal</string>
+  <string>MarketPulse</string>
 
   <key>CFBundleIdentifier</key>
   <string>com.novawealth.marketpulseterminal</string>
