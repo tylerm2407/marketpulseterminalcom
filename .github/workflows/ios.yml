@@ -1,9 +1,7 @@
 name: iOS Build & App Store Deploy
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:  # Allow manual trigger from GitHub UI
+  workflow_dispatch:  # Manual trigger only — run from GitHub Actions tab when signing secrets are ready
 
 jobs:
   build-ios:
