@@ -31,16 +31,19 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { isProViaRC, rcReady, refreshRC } = useRevenueCat();
 
   const checkSubscription = useCallback(async () => {
-    // ------------------------------------------------------------------
-    // On native: RevenueCat is the source of truth for entitlements.
-    // We still allow Nova Wealth linked accounts to bypass.
-    // ------------------------------------------------------------------
+    // Guest users are always free-tier, skip all checks
+    if (isGuest) {
+      setIsPro(false);
+      setSubscriptionEnd(null);
+      setLoading(false);
+      return;
+    }
+
     const isNative =
       typeof (window as any).Capacitor !== 'undefined' &&
       (window as any).Capacitor?.isNativePlatform?.();
 
     if (!session?.access_token) {
-      // On native, RC may already report Pro (anonymous purchase restore)
       setIsPro(isNative && isProViaRC);
       setSubscriptionEnd(null);
       setLoading(false);
@@ -90,7 +93,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [session?.access_token, user?.id, isProViaRC]);
+  }, [session?.access_token, user?.id, isProViaRC, isGuest]);
 
   // Re-run whenever the RC state settles (native) or session changes (web)
   useEffect(() => {
