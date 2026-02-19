@@ -34,28 +34,25 @@ jobs:
       - name: Install Capacitor CLI
         run: npm install -g @capacitor/cli
 
-      # ── 5. Add iOS platform (skip pod install, we do it after fixing target)
-      - name: Add iOS platform
-        run: npx cap add ios || true
-
-      # ── 6. Set minimum iOS deployment target ──────────────────────────
-      - name: Set iOS deployment target
+      # ── 5. Add iOS platform, fix deployment target, then install pods ─
+      - name: Add iOS platform and configure
         run: |
+          # Add iOS but ignore pod install failure (it will fail due to low target)
+          npx cap add ios || true
+          
+          # Fix deployment target in Podfile
           cd ios/App
-          # Update Podfile
           sed -i '' "s/platform :ios, '.*'/platform :ios, '16.0'/" Podfile
-          # Also update the Xcode project deployment target
+          
+          # Also fix Xcode project deployment target
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 16.0/g' App.xcodeproj/project.pbxproj
-
-      # ── 7. Install CocoaPods dependencies ─────────────────────────────
-      - name: Install CocoaPods
-        run: |
-          cd ios/App
+          
+          # Now install pods with the correct target
           pod install --repo-update
-
-      # ── 8. Sync Capacitor ──────────────────────────────────────────────
-      - name: Sync Capacitor
-        run: npx cap sync ios
+          
+          # Go back and sync capacitor
+          cd ../..
+          npx cap sync ios
 
       # ── 7. Import signing certificate ─────────────────────────────────
       #   These secrets must be configured in GitHub → Settings → Secrets
