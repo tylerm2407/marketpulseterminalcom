@@ -9,19 +9,20 @@ const FREE_WATCHLIST_LIMIT = 10;
 interface SubscriptionContextType {
   isPro: boolean;
   loading: boolean;
+  isGuest: boolean;
   subscriptionEnd: string | null;
   refreshSubscription: () => Promise<void>;
   /** Feature gate helpers */
   canUsePortfolio: boolean;
   canUseScreener: boolean;
   canUseTweets: boolean;
-  watchlistLimit: number | null; // null = unlimited
+  watchlistLimit: number | null; // null = unlimited, 0 = no watchlist (guest)
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
-  const { user, session } = useAuth();
+  const { user, session, isGuest } = useAuth();
   const [isPro, setIsPro] = useState(false);
   const [loading, setLoading] = useState(true);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
@@ -116,12 +117,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       value={{
         isPro,
         loading,
+        isGuest,
         subscriptionEnd,
         refreshSubscription,
-        canUsePortfolio: isPro,
-        canUseScreener: isPro,
-        canUseTweets: isPro,
-        watchlistLimit: isPro ? null : FREE_WATCHLIST_LIMIT,
+        canUsePortfolio: isPro && !isGuest,
+        canUseScreener: isPro && !isGuest,
+        canUseTweets: isPro && !isGuest,
+        watchlistLimit: isGuest ? 0 : isPro ? null : FREE_WATCHLIST_LIMIT,
       }}
     >
       {children}

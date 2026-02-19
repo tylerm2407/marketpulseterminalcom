@@ -13,6 +13,8 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   const isPublic = PUBLIC_ROUTES.some(route => location.pathname.startsWith(route));
 
+  // Guests have a user session (anonymous), so they pass through.
+  // Only redirect if there is no session at all.
   if (!user && !isPublic) {
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
