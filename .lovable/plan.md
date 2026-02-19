@@ -1,54 +1,21 @@
 
 
-# Add JSON-LD Structured Data and Smart App Banner
+# Fix iOS Build Workflow and Apply ASO Changes
 
-## Changes to `index.html`
+## What This Does
+Stops the iOS build from failing on every push by making it manual-only, and updates the app display name to "MarketPulse" for the App Store.
 
-### 1. Smart App Banner Meta Tag
-Add the `apple-itunes-app` meta tag in the `<head>` section. This makes Safari on iOS show a native "Open in App" banner at the top of the page.
+## Changes
 
-- You will need your **App Store ID** once the app is published. For now, a placeholder ID will be used that you can update later.
-- Format: `<meta name="apple-itunes-app" content="app-id=YOUR_APP_STORE_ID, app-argument=https://marketpulseterminal.com">`
+### 1. GitHub Actions Workflow (`.github/workflows/ios.yml`)
+- Remove the `push: branches: [main]` trigger so builds only run when you manually trigger them
+- Keep `workflow_dispatch` so you can run it from GitHub when you're ready with all the Apple signing secrets
 
-### 2. JSON-LD SoftwareApplication Schema
-Add a `<script type="application/ld+json">` block in the `<head>` with a `SoftwareApplication` schema that includes:
+### 2. Capacitor Config (`capacitor.config.ts`)
+- Change `appName` from `'MarketPulseTerminal'` to `'MarketPulse'` (this is what shows under the app icon on the home screen)
 
-- **name**: MarketPulse
-- **applicationCategory**: FinanceApplication
-- **operatingSystem**: iOS, Web
-- **description**: AI-powered stock analysis with screener, alerts, and research
-- **offers**: Free tier and Pro tier ($19.99/mo)
-- **aggregateRating** placeholder (can be updated once you have real ratings)
-- **author/publisher**: NovaWealth
+### 3. iOS Info.plist (`ios-config/Info.plist.additions.xml`)
+- Update `CFBundleDisplayName` to `'MarketPulse'` if not already set
 
-This helps Google display rich results (app info boxes, pricing, ratings) when people search for MarketPulse.
+Once these changes are made, you can re-add the GitHub repository and pushes will no longer trigger the failing iOS build. When you have all the Apple signing secrets configured, you can manually trigger the build from the GitHub Actions tab.
 
-### 3. Also update meta tags (from previously approved ASO plan)
-- **Title**: "MarketPulse -- AI Stock Analysis"
-- **Meta description**: Keyword-rich rewrite
-- **OG tags**: Updated title and description
-- **Twitter tags**: Add title and description
-
----
-
-## Technical Details
-
-### File Modified
-| File | What Changes |
-|------|-------------|
-| `index.html` | Add Smart App Banner meta tag, JSON-LD script block, update title/description/OG tags |
-
-### Smart App Banner Note
-The `app-id` value needs to be your actual Apple App Store ID (a numeric ID like `123456789`). A placeholder will be inserted -- replace it once your app is live on the App Store. You can find your App Store ID in App Store Connect under "App Information".
-
-### JSON-LD Schema Structure
-```text
-SoftwareApplication
-  +-- name: "MarketPulse"
-  +-- applicationCategory: "FinanceApplication"
-  +-- operatingSystem: "iOS, Web"
-  +-- offers: [Free, Pro $19.99/mo]
-  +-- author: { Organization: "NovaWealth" }
-```
-
-No new files or dependencies needed -- just updates to `index.html`.
