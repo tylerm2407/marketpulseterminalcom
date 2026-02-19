@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import {
   BarChart3, Mail, Lock, ArrowRight, Loader2, ExternalLink,
-  Check, X, Crown, Zap, TrendingUp, Bell, Shield
+  Check, X, Crown, Zap, TrendingUp, Bell, Shield, UserRound
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -31,8 +31,9 @@ const highlights = [
 ];
 
 export default function Auth() {
-  const { user, loading, signIn, signUp } = useAuth();
+  const { user, loading, signIn, signUp, signInAsGuest } = useAuth();
   const [isSignUp, setIsSignUp] = useState(true);
+  const [guestLoading, setGuestLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -61,6 +62,15 @@ export default function Auth() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleGuestSignIn = async () => {
+    setGuestLoading(true);
+    const { error } = await signInAsGuest();
+    if (error) {
+      toast.error('Could not start guest session. Please try again.');
+    }
+    setGuestLoading(false);
   };
 
   return (
@@ -243,6 +253,23 @@ export default function Auth() {
             <ExternalLink className="h-4 w-4" />
             Continue with Nova Wealth
           </Button>
+
+          <Button
+            variant="ghost"
+            className="w-full gap-2 mt-2 text-muted-foreground hover:text-foreground"
+            onClick={handleGuestSignIn}
+            disabled={guestLoading}
+          >
+            {guestLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <UserRound className="h-4 w-4" />
+            )}
+            Continue as Guest
+          </Button>
+          <p className="text-center text-[11px] text-muted-foreground/50 -mt-1">
+            No account needed · Free features only · Data not saved
+          </p>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}

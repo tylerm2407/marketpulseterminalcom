@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, Eye, Home, Newspaper, GitCompareArrows, Sparkles, Sun, Moon, Search, X, Wallet, Bell, LogIn, LogOut } from 'lucide-react';
+import { BarChart3, Eye, Home, Newspaper, GitCompareArrows, Sparkles, Sun, Moon, Search, X, Wallet, Bell, LogIn, LogOut, UserRound } from 'lucide-react';
 import { SearchBar } from '@/components/search/SearchBar';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { useTheme } from '@/hooks/useTheme';
@@ -24,7 +24,7 @@ export function Header() {
   const { tickers } = useWatchlistStore();
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isGuest } = useAuth();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   return (
@@ -104,20 +104,42 @@ export function Header() {
 
           {/* Auth */}
           {user ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => signOut()}
-                  className="h-9 w-9 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+            isGuest ? (
+              /* Guest user — show "Sign Up" CTA + sign out */
+              <div className="flex items-center gap-1.5">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 text-xs text-primary-foreground/50 px-2">
+                      <UserRound className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Guest</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Browsing as guest — data not saved</TooltipContent>
+                </Tooltip>
+                <Link
+                  to="/auth"
+                  className="flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-md bg-accent text-accent-foreground hover:bg-accent/90 transition-all"
                 >
-                  <LogOut className="h-4 w-4" />
-                  <span className="sr-only">Sign out</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Sign out</TooltipContent>
-            </Tooltip>
+                  <LogIn className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sign Up Free</span>
+                </Link>
+              </div>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => signOut()}
+                    className="h-9 w-9 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span className="sr-only">Sign out</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Sign out</TooltipContent>
+              </Tooltip>
+            )
           ) : (
             <Link
               to="/auth"
