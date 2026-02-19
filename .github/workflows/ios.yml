@@ -42,7 +42,10 @@ jobs:
       - name: Set iOS deployment target
         run: |
           cd ios/App
-          sed -i '' "s/platform :ios, '.*'/platform :ios, '14.0'/" Podfile
+          # Update Podfile
+          sed -i '' "s/platform :ios, '.*'/platform :ios, '16.0'/" Podfile
+          # Also update the Xcode project deployment target
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 16.0/g' App.xcodeproj/project.pbxproj
 
       # ── 7. Install CocoaPods dependencies ─────────────────────────────
       - name: Install CocoaPods
