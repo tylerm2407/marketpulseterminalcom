@@ -23,6 +23,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { NovaWealthAuthHandler } from "@/components/NovaWealthAuthHandler";
+import { RequireAuth } from "@/components/RequireAuth";
 
 const queryClient = new QueryClient();
 
@@ -36,24 +37,35 @@ const App = () => (
           <BrowserRouter>
             <NativeAppShell>
               <NovaWealthAuthHandler />
-              <Header />
               <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/stock/:ticker" element={<StockDossier />} />
-                <Route path="/watchlist" element={<Watchlist />} />
-                <Route path="/news" element={<News />} />
-                <Route path="/earnings" element={<EarningsCalendar />} />
-                <Route path="/compare" element={<StockComparison />} />
-                <Route path="/screener" element={<StockScreener />} />
-                <Route path="/portfolio" element={<Portfolio />} />
-                <Route path="/alerts" element={<PriceAlerts />} />
-                <Route path="/pricing" element={<Pricing />} />
+                {/* Public routes — no chrome */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="*" element={<NotFound />} />
+                {/* Protected routes — wrapped with RequireAuth + app chrome */}
+                <Route
+                  path="*"
+                  element={
+                    <RequireAuth>
+                      <Header />
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/stock/:ticker" element={<StockDossier />} />
+                        <Route path="/watchlist" element={<Watchlist />} />
+                        <Route path="/news" element={<News />} />
+                        <Route path="/earnings" element={<EarningsCalendar />} />
+                        <Route path="/compare" element={<StockComparison />} />
+                        <Route path="/screener" element={<StockScreener />} />
+                        <Route path="/portfolio" element={<Portfolio />} />
+                        <Route path="/alerts" element={<PriceAlerts />} />
+                        <Route path="/pricing" element={<Pricing />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                      <MobileBottomNav />
+                      <OnboardingTour />
+                    </RequireAuth>
+                  }
+                />
               </Routes>
-              <MobileBottomNav />
-              <OnboardingTour />
             </NativeAppShell>
           </BrowserRouter>
         </TooltipProvider>
