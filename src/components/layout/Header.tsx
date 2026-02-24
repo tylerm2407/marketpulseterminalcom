@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, Eye, Home, Newspaper, GitCompareArrows, Sparkles, Sun, Moon, Search, X, Wallet, Bell, LogIn, LogOut, UserRound } from 'lucide-react';
+import { Eye, Home, Newspaper, GitCompareArrows, Sparkles, Sun, Moon, Search, X, Wallet, Bell, LogIn, LogOut, UserRound, BarChart3 } from 'lucide-react';
+import logoImg from '@/assets/logo.png';
 import { SearchBar } from '@/components/search/SearchBar';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { useTheme } from '@/hooks/useTheme';
@@ -32,7 +33,7 @@ export function Header() {
       <div className="container mx-auto px-4 h-14 flex items-center gap-3">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 font-bold text-lg shrink-0 tracking-tight">
-          <BarChart3 className="h-5 w-5 text-accent" />
+          <img src={logoImg} alt="MarketPulse" className="h-8 w-8 rounded" />
           <span>Market<span className="text-accent">Pulse</span></span>
         </Link>
 
