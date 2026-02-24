@@ -1,18 +1,30 @@
-import { useLocation, Link } from 'react-router-dom';
-import { Home, Eye, Wallet, Bell, Sparkles } from 'lucide-react';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { Home, Eye, Wallet, Bell, UserRound, LogOut } from 'lucide-react';
 import { useWatchlistStore } from '@/stores/watchlistStore';
+import { useAuth } from '@/hooks/useAuth';
 
 const navItems = [
   { label: 'Home', icon: Home, path: '/' },
   { label: 'Watchlist', icon: Eye, path: '/watchlist' },
   { label: 'Portfolio', icon: Wallet, path: '/portfolio' },
   { label: 'Alerts', icon: Bell, path: '/alerts' },
-  { label: 'Screener', icon: Sparkles, path: '/screener' },
+  { label: 'Profile', icon: UserRound, path: '/profile' },
 ] as const;
 
 export function MobileBottomNav() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { tickers } = useWatchlistStore();
+  const { signOut } = useAuth();
+
+  const handleNav = async (path: string) => {
+    if (path === '/profile') {
+      await signOut();
+      navigate('/auth');
+      return;
+    }
+    navigate(path);
+  };
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 bg-card/95 backdrop-blur-md border-t border-border sm:hidden safe-bottom">
@@ -24,14 +36,14 @@ export function MobileBottomNav() {
               : location.pathname.startsWith(path);
 
           return (
-            <Link
+            <button
               key={path}
-              to={path}
+              onClick={() => handleNav(path)}
               className={`relative flex flex-col items-center justify-center flex-1 gap-0.5 text-[10px] font-medium transition-colors ${
                 isActive
                   ? 'text-accent'
                   : 'text-muted-foreground active:text-foreground'
-              }`}
+              } ${label === 'Profile' ? 'text-destructive' : ''}`}
             >
               <div className="relative">
                 <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
@@ -41,11 +53,11 @@ export function MobileBottomNav() {
                   </span>
                 )}
               </div>
-              <span>{label}</span>
-              {isActive && (
+              <span>{label === 'Profile' ? 'Sign Out' : label}</span>
+              {isActive && label !== 'Profile' && (
                 <span className="absolute top-0 inset-x-4 h-0.5 rounded-b-full bg-accent" />
               )}
-            </Link>
+            </button>
           );
         })}
       </div>

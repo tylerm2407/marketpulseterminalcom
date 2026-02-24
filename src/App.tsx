@@ -57,7 +57,6 @@ const App = () => (
                         <Route path="/screener" element={<StockScreener />} />
                         <Route path="/portfolio" element={<Portfolio />} />
                         <Route path="/alerts" element={<PriceAlerts />} />
-                        <Route path="/pricing" element={<Pricing />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       <MobileBottomNav />
