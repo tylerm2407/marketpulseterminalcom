@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import {
   Mail, Lock, ArrowRight, Loader2, ExternalLink,
-  Check, X, Crown, Zap, TrendingUp, Bell, Shield, UserRound
+  Check, X, Crown, Zap, TrendingUp, Bell, Shield, UserRound, Eye, EyeOff
 } from 'lucide-react';
 import logoImg from '@/assets/logo.png';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,6 +37,7 @@ export default function Auth() {
   const [guestLoading, setGuestLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   if (loading) return null;
@@ -208,15 +209,22 @@ export default function Auth() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 pr-10"
                   required
                   minLength={6}
                   autoComplete={isSignUp ? 'new-password' : 'current-password'}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
               {isSignUp && (
                 <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
