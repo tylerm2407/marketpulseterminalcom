@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Eye, Home, Newspaper, GitCompareArrows, Sparkles, Sun, Moon, Search, X, Wallet, Bell, LogIn, LogOut, UserRound, BarChart3 } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Eye, Home, Newspaper, GitCompareArrows, Sparkles, Sun, Moon, Search, X, Wallet, Bell, LogIn, LogOut, UserRound } from 'lucide-react';
 import logoImg from '@/assets/logo.png';
 import { SearchBar } from '@/components/search/SearchBar';
 import { useWatchlistStore } from '@/stores/watchlistStore';
@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const navLinks = [
   { label: 'Home', path: '/', icon: Home },
@@ -18,7 +19,6 @@ const navLinks = [
   { label: 'News', path: '/news', icon: Newspaper },
   { label: 'Compare', path: '/compare', icon: GitCompareArrows },
   { label: 'Screener', path: '/screener', icon: Sparkles },
-  { label: 'Pricing', path: '/pricing', icon: BarChart3 },
 ] as const;
 
 export function Header() {
@@ -26,7 +26,13 @@ export function Header() {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { user, signOut, isGuest } = useAuth();
+  const navigate = useNavigate();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
 
   return (
     <header className="sticky top-0 z-50 hero-gradient text-primary-foreground border-b border-primary-foreground/10">
@@ -103,10 +109,9 @@ export function Header() {
             </TooltipContent>
           </Tooltip>
 
-          {/* Auth */}
+          {/* Profile / Auth */}
           {user ? (
             isGuest ? (
-              /* Guest user — show "Sign Up" CTA + sign out */
               <div className="flex items-center gap-1.5">
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -126,20 +131,27 @@ export function Header() {
                 </Link>
               </div>
             ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => signOut()}
                     className="h-9 w-9 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
                   >
-                    <LogOut className="h-4 w-4" />
-                    <span className="sr-only">Sign out</span>
+                    <UserRound className="h-4 w-4" />
+                    <span className="sr-only">Profile</span>
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Sign out</TooltipContent>
-              </Tooltip>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">
+                    {user.email}
+                  </div>
+                  <DropdownMenuItem onClick={handleSignOut} className="gap-2 text-destructive focus:text-destructive cursor-pointer">
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )
           ) : (
             <Link
