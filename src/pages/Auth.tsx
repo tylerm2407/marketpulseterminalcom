@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import {
-  BarChart3, Mail, Lock, ArrowRight, Loader2, ExternalLink,
+  Mail, Lock, ArrowRight, Loader2, ExternalLink,
   Check, X, Crown, Zap, TrendingUp, Bell, Shield, UserRound
 } from 'lucide-react';
+import logoImg from '@/assets/logo.png';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -81,9 +82,7 @@ export default function Auth() {
 
         {/* Logo */}
         <div className="flex items-center gap-2.5 mb-8">
-          <div className="p-2 rounded-lg bg-accent/20">
-            <BarChart3 className="h-6 w-6 text-accent" />
-          </div>
+          <img src={logoImg} alt="MarketPulse" className="h-10 w-10 rounded-lg" />
           <span className="text-2xl font-bold tracking-tight">
             Market<span className="text-accent">Pulse</span>
           </span>
