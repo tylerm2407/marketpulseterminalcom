@@ -1,13 +1,13 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Eye, Wallet, Bell, UserRound } from 'lucide-react';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { useAuth } from '@/hooks/useAuth';
+import { Home, Eye, Wallet, BarChart3, UserRound } from 'lucide-react';
 
 const navItems = [
   { label: 'Home', icon: Home, path: '/' },
   { label: 'Watchlist', icon: Eye, path: '/watchlist' },
   { label: 'Portfolio', icon: Wallet, path: '/portfolio' },
-  { label: 'Alerts', icon: Bell, path: '/alerts' },
+  { label: 'Analytics', icon: BarChart3, path: '/analytics' },
   { label: 'Profile', icon: UserRound, path: '/profile' },
 ] as const;
 

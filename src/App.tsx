@@ -19,6 +19,7 @@ import StockComparison from "./pages/StockComparison";
 import StockScreener from "./pages/StockScreener";
 import Portfolio from "./pages/Portfolio";
 import PriceAlerts from "./pages/PriceAlerts";
+import Analytics from "./pages/Analytics";
 import Pricing from "./pages/Pricing";
 import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -62,6 +63,7 @@ const App = () => (
                           <Route path="/screener" element={<StockScreener />} />
                           <Route path="/portfolio" element={<Portfolio />} />
                           <Route path="/alerts" element={<PriceAlerts />} />
+                          <Route path="/analytics" element={<Analytics />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </div>
