@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, X, Crown, Zap, Loader2, ExternalLink } from 'lucide-react';
+import { Check, X, Crown, Zap, Loader2, ExternalLink, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,17 +12,35 @@ import { toast } from 'sonner';
 import { ReferralCodeInput, type ReferralValidation } from '@/components/ReferralCodeInput';
 
 const features = [
-  { name: 'Stock Dossiers & Charts', free: true, pro: true },
-  { name: 'Market Overview & News', free: true, pro: true },
-  { name: 'Earnings Calendar', free: true, pro: true },
-  { name: 'Stock Comparison', free: true, pro: true },
-  { name: 'Watchlist', free: '10 stocks', pro: 'Unlimited' },
-  { name: 'Portfolio Tracking', free: false, pro: true },
-  { name: 'Price Alerts', free: false, pro: true },
-  { name: 'AI Stock Screener', free: false, pro: true },
-  { name: 'Social Sentiment (Grok AI)', free: false, pro: true },
-  { name: 'Real-time Data', free: 'Delayed', pro: 'Live' },
+  { name: 'Stock Dossiers & Charts', free: true, pro: true, bundle: true },
+  { name: 'Market Overview & News', free: true, pro: true, bundle: true },
+  { name: 'Earnings Calendar', free: true, pro: true, bundle: true },
+  { name: 'Stock Comparison', free: true, pro: true, bundle: true },
+  { name: 'Watchlist', free: '10 stocks', pro: 'Unlimited', bundle: 'Unlimited' },
+  { name: 'Portfolio Tracking', free: false, pro: true, bundle: true },
+  { name: 'Price Alerts', free: false, pro: true, bundle: true },
+  { name: 'AI Stock Screener', free: false, pro: true, bundle: true },
+  { name: 'Social Sentiment (Grok AI)', free: false, pro: true, bundle: true },
+  { name: 'Real-time Data', free: 'Delayed', pro: 'Live', bundle: 'Live' },
 ];
+
+const bundleExtras = [
+  'Everything in Pro',
+  'Access to all Nova apps',
+  'Unified subscription',
+  'Cross-app insights',
+];
+
+const MONTHLY_PRO = 19.99;
+const YEARLY_PRO = 149.99;
+const MONTHLY_BUNDLE = 29.99;
+const YEARLY_BUNDLE = 249.99;
+
+function savingsPercent(monthly: number, yearly: number) {
+  return Math.round((1 - yearly / (monthly * 12)) * 100);
+}
+
+const NOVAWEALTH_PRICING_URL = 'https://novawealth.app/pricing';
 
 export default function Pricing() {
   const { user, session } = useAuth();
@@ -32,17 +50,15 @@ export default function Pricing() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [referral, setReferral] = useState<ReferralValidation | null>(null);
+  const [isYearly, setIsYearly] = useState(false);
 
   const success = searchParams.get('success') === 'true';
 
-  // Track referral on successful payment redirect
   useEffect(() => {
     if (!success) return;
     refreshAccess();
-
     const stored = sessionStorage.getItem('mp_referral');
     if (!stored) return;
-
     try {
       const ref = JSON.parse(stored);
       supabase.functions.invoke('referral-proxy', {
@@ -59,35 +75,24 @@ export default function Pricing() {
   }, [success]);
 
   const handleCheckout = async () => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
+    if (!user) { navigate('/auth'); return; }
     setCheckoutLoading(true);
     try {
-      // Store referral data for post-checkout tracking
       if (referral) {
         sessionStorage.setItem('mp_referral', JSON.stringify({
-          code: referral.code,
-          referrer_id: referral.referrer_id,
-          email: user.email,
+          code: referral.code, referrer_id: referral.referrer_id, email: user.email,
         }));
       }
-
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         headers: { Authorization: `Bearer ${session?.access_token}` },
         body: referral ? { referral_code: referral.code, referrer_id: referral.referrer_id } : {},
       });
       if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      }
+      if (data?.url) window.open(data.url, '_blank');
     } catch (err) {
       toast.error('Failed to start checkout. Please try again.');
       console.error(err);
-    } finally {
-      setCheckoutLoading(false);
-    }
+    } finally { setCheckoutLoading(false); }
   };
 
   const handleManage = async () => {
@@ -97,25 +102,55 @@ export default function Pricing() {
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
       if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      }
+      if (data?.url) window.open(data.url, '_blank');
     } catch (err) {
       toast.error('Failed to open subscription management.');
       console.error(err);
-    } finally {
-      setPortalLoading(false);
-    }
+    } finally { setPortalLoading(false); }
   };
+
+  const proPrice = isYearly ? YEARLY_PRO : MONTHLY_PRO;
+  const bundlePrice = isYearly ? YEARLY_BUNDLE : MONTHLY_BUNDLE;
+  const period = isYearly ? '/yr' : '/mo';
+  const proSavings = savingsPercent(MONTHLY_PRO, YEARLY_PRO);
+  const bundleSavings = savingsPercent(MONTHLY_BUNDLE, YEARLY_BUNDLE);
 
   return (
     <div className="min-h-screen bg-background pb-16 sm:pb-0">
-      <section className="container mx-auto px-4 py-12 max-w-4xl">
-        <div className="text-center mb-10">
+      <section className="container mx-auto px-4 py-12 max-w-5xl">
+        {/* Header */}
+        <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Choose Your Plan</h1>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            Start with a <span className="font-semibold text-accent">30-day free trial</span> of Pro — no commitment, cancel anytime.
-          </p>
+          <p className="text-muted-foreground">Start free, upgrade anytime</p>
+        </div>
+
+        {/* Billing toggle */}
+        <div className="flex items-center justify-center gap-1 mb-10">
+          <button
+            onClick={() => setIsYearly(false)}
+            className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+              !isYearly
+                ? 'bg-accent text-accent-foreground shadow-md'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Monthly
+          </button>
+          <div className="relative">
+            <button
+              onClick={() => setIsYearly(true)}
+              className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+                isYearly
+                  ? 'bg-accent text-accent-foreground shadow-md'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Yearly
+            </button>
+            <span className="absolute -top-3 -right-4 text-[10px] font-bold bg-warning text-black px-1.5 py-0.5 rounded-full leading-none">
+              -{proSavings}%
+            </span>
+          </div>
         </div>
 
         {success && (
@@ -124,8 +159,9 @@ export default function Pricing() {
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 gap-6 mb-10">
-          {/* Free Tier */}
+        {/* 3-column pricing grid */}
+        <div className="grid md:grid-cols-3 gap-5 mb-10">
+          {/* ── Free ── */}
           <Card className={`relative ${!isPro ? 'border-accent/50 ring-1 ring-accent/20' : ''}`}>
             {!isPro && !subLoading && (
               <Badge className="absolute -top-2.5 left-4 bg-accent text-accent-foreground text-[10px]">Your Plan</Badge>
@@ -137,10 +173,11 @@ export default function Pricing() {
               </CardTitle>
               <div className="mt-2">
                 <span className="text-3xl font-bold font-mono text-foreground">$0</span>
-                <span className="text-sm text-muted-foreground">/month</span>
+                <span className="text-sm text-muted-foreground">/mo</span>
               </div>
+              <p className="text-xs text-muted-foreground mt-1">Get started with the basics</p>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2.5">
               {features.map(f => (
                 <div key={f.name} className="flex items-center gap-2.5 text-sm">
                   {f.free ? (
@@ -164,23 +201,29 @@ export default function Pricing() {
             </CardContent>
           </Card>
 
-          {/* Pro Tier */}
-          <Card className={`relative ${isPro ? 'border-accent/50 ring-1 ring-accent/20' : 'border-accent/30'}`}>
-            {isPro && !subLoading && (
-              <Badge className="absolute -top-2.5 left-4 bg-accent text-accent-foreground text-[10px]">Your Plan</Badge>
-            )}
+          {/* ── Pro ── */}
+          <Card className={`relative ${isPro ? 'border-accent/50 ring-1 ring-accent/20' : 'border-accent/40 ring-1 ring-accent/15'}`}>
+            <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground text-[10px] uppercase tracking-wider">
+              {isPro && !subLoading ? 'Your Plan' : 'Popular'}
+            </Badge>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Crown className="h-5 w-5 text-accent" />
                 Pro
               </CardTitle>
               <div className="mt-2">
-                <span className="text-3xl font-bold font-mono text-foreground">$19.99</span>
-                <span className="text-sm text-muted-foreground">/month</span>
+                <span className="text-3xl font-bold font-mono text-foreground">
+                  ${proPrice.toFixed(2)}
+                </span>
+                <span className="text-sm text-muted-foreground">{period}</span>
               </div>
-              <p className="text-xs text-accent mt-1">30-day free trial included</p>
+              {isYearly ? (
+                <p className="text-xs text-accent mt-1">Save {proSavings}% vs monthly</p>
+              ) : (
+                <p className="text-xs text-accent mt-1">30-day free trial included</p>
+              )}
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2.5">
               {features.map(f => (
                 <div key={f.name} className="flex items-center gap-2.5 text-sm">
                   <Check className="h-4 w-4 text-gain shrink-0" />
@@ -217,26 +260,49 @@ export default function Pricing() {
               )}
             </CardContent>
           </Card>
-        </div>
 
-        {/* NovaWealth Bundle Option */}
-        <div className="bg-card border border-border rounded-lg p-6 text-center mb-8">
-          <h3 className="text-base font-semibold text-foreground mb-1">Or get it all with NovaWealth</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Subscribe to the NovaWealth Bundle to unlock MarketPulse Pro and all other NovaWealth apps.
-          </p>
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => window.open('https://novawealth.app/pricing', '_blank')}
-          >
-            <ExternalLink className="h-4 w-4" />
-            View NovaWealth Bundle
-          </Button>
+          {/* ── Bundle ── */}
+          <Card className="relative border-warning/40 ring-1 ring-warning/15">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Sparkles className="h-5 w-5 text-warning" />
+                Bundle
+              </CardTitle>
+              <div className="mt-2">
+                <span className="text-3xl font-bold font-mono text-foreground">
+                  ${bundlePrice.toFixed(2)}
+                </span>
+                <span className="text-sm text-muted-foreground">{period}</span>
+              </div>
+              {isYearly ? (
+                <p className="text-xs text-warning mt-1">Save {bundleSavings}% vs monthly</p>
+              ) : (
+                <p className="text-xs text-warning mt-1">NovaWealth ecosystem</p>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-2.5">
+              {bundleExtras.map(item => (
+                <div key={item} className="flex items-center gap-2.5 text-sm">
+                  <Check className="h-4 w-4 text-warning shrink-0" />
+                  <span className="text-foreground">{item}</span>
+                </div>
+              ))}
+              <Button
+                className="w-full mt-4 bg-warning hover:bg-warning/90 text-black font-semibold"
+                onClick={() => window.open(NOVAWEALTH_PRICING_URL, '_blank')}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Get the Bundle
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
-          Cancel anytime during your trial — you won't be charged. After the trial, $19.99/month billed monthly.
+          Cancel anytime during your trial — you won't be charged.{' '}
+          {isYearly
+            ? `After the trial, $${YEARLY_PRO.toFixed(2)}/year billed annually.`
+            : `After the trial, $${MONTHLY_PRO.toFixed(2)}/month billed monthly.`}
         </p>
       </section>
       <Footer />
