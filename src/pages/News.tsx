@@ -1,12 +1,13 @@
 import { Footer } from '@/components/layout/Footer';
 import { TickerMarquee } from '@/components/TickerMarquee';
-import { Newspaper, ExternalLink, Loader2, Sparkles } from 'lucide-react';
+import { Newspaper, ExternalLink, Loader2, Sparkles, Bot, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { LatestBuzz } from '@/components/dossier/LatestBuzz';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/hooks/use-toast';
 
 interface NewsItem {
   title: string;
@@ -24,13 +25,11 @@ function useMarketNews() {
   return useQuery({
     queryKey: ['market-news'],
     queryFn: async () => {
-      // Fetch news for top tickers
       const { data, error } = await supabase.functions.invoke('stock-data', {
         body: { type: 'dossier', ticker: 'AAPL' },
       });
       if (error) throw error;
 
-      // Also try a couple more tickers for variety
       const results = await Promise.allSettled(
         trendingTickers.slice(1, 4).map((t) =>
           supabase.functions.invoke('stock-data', {
@@ -46,7 +45,6 @@ function useMarketNews() {
         }
       }
 
-      // Deduplicate by title and sort by date
       const seen = new Set<string>();
       return allNews
         .filter((n) => {
@@ -76,21 +74,84 @@ function formatRelativeDate(dateStr: string): string {
   return `${days}d ago`;
 }
 
+function AiSummaryButton({ item }: { item: NewsItem }) {
+  const [summary, setSummary] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const handleSummarize = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (summary) {
+      setOpen(!open);
+      return;
+    }
+
+    setLoading(true);
+    setOpen(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('news-summarize', {
+        body: { title: item.title, text: item.text, site: item.site },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setSummary(data.summary);
+    } catch (err: any) {
+      toast({ title: 'Summary failed', description: err.message || 'Could not summarize article', variant: 'destructive' });
+      setOpen(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="w-full">
+      <button
+        onClick={handleSummarize}
+        className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--accent-primary)] hover:text-[var(--accent-glow)] transition-colors"
+      >
+        <Bot className="h-3 w-3" />
+        {loading ? 'Summarizing…' : open ? 'Hide Summary' : 'AI Summary'}
+      </button>
+      {open && (
+        <div
+          className="mt-2 p-3 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] leading-relaxed relative"
+          onClick={(e) => e.preventDefault()}
+        >
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}
+            className="absolute top-2 right-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+          >
+            <X className="h-3 w-3" />
+          </button>
+          {loading ? (
+            <div className="flex items-center gap-2 py-2">
+              <Loader2 className="h-3 w-3 animate-spin text-[var(--accent-primary)]" />
+              <span>Generating summary…</span>
+            </div>
+          ) : (
+            <div className="prose-sm whitespace-pre-wrap pr-4">{summary}</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function News() {
   const { data: news, isLoading } = useMarketNews();
-
   const [selectedBuzzTicker, setSelectedBuzzTicker] = useState<string | null>(null);
 
   return (
-    <div className="min-h-screen bg-background pb-16 sm:pb-0">
-      
+    <div className="min-h-screen pb-16 sm:pb-0" style={{ backgroundColor: 'var(--bg-base)' }}>
       <TickerMarquee />
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         {/* Latest Buzz Section */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="h-5 w-5 text-accent" />
-            <h2 className="text-lg font-bold text-foreground">Latest Buzz</h2>
+            <Sparkles className="h-5 w-5 text-[var(--accent-primary)]" />
+            <h2 className="text-lg font-bold text-[var(--text-primary)]">Latest Buzz</h2>
           </div>
           <div className="flex flex-wrap gap-2 mb-4">
             {trendingTickers.map((t) => (
@@ -106,45 +167,41 @@ export default function News() {
             ))}
           </div>
           {selectedBuzzTicker && (
-            <div className="bg-card rounded-lg border border-border card-elevated p-4">
+            <div className="card-elevated p-4">
               <LatestBuzz ticker={selectedBuzzTicker} companyName={selectedBuzzTicker} />
             </div>
           )}
         </div>
 
         <div className="flex items-center gap-2 mb-6">
-          <Newspaper className="h-5 w-5 text-accent" />
-          <h1 className="text-2xl font-bold text-foreground">Trending News</h1>
+          <Newspaper className="h-5 w-5 text-[var(--accent-primary)]" />
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Trending News</h1>
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            <span className="ml-2 text-muted-foreground text-sm">
-              Loading latest news…
-            </span>
+            <Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
+            <span className="ml-2 text-[var(--text-muted)] text-sm">Loading latest news…</span>
           </div>
         ) : !news?.length ? (
-          <div className="text-center py-20 bg-card rounded-lg border border-border card-elevated">
-            <Newspaper className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-foreground mb-2">
-              No news available
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Check back soon for the latest market news.
-            </p>
+          <div className="text-center py-20 card-elevated">
+            <Newspaper className="h-12 w-12 text-[var(--text-muted)] mx-auto mb-4 opacity-30" />
+            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">No news available</h2>
+            <p className="text-sm text-[var(--text-secondary)]">Check back soon for the latest market news.</p>
           </div>
         ) : (
           <div className="space-y-3">
             {news.map((item, i) => (
-              <a
+              <div
                 key={i}
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block bg-card rounded-lg border border-border card-elevated p-4 hover:border-accent/40 transition-all duration-200 group"
+                className="card-elevated p-4 group"
               >
-                <div className="flex items-start gap-4">
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start gap-4"
+                >
                   {item.image && (
                     <img
                       src={item.image}
@@ -154,27 +211,35 @@ export default function News() {
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground text-sm leading-snug group-hover:text-accent transition-colors line-clamp-2">
+                    <h3 className="font-semibold text-[var(--text-primary)] text-sm leading-snug group-hover:text-[var(--accent-primary)] transition-colors line-clamp-2">
                       {item.title}
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-[var(--text-secondary)] mt-1.5 line-clamp-2 leading-relaxed">
                       {item.text}
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="outline" className="text-[10px] font-mono">
+                      <Badge variant="outline" className="text-[10px] font-mono border-[var(--border-subtle)] text-[var(--text-muted)]">
                         {item.symbol}
                       </Badge>
-                      <span className="text-[10px] text-muted-foreground">
-                        {item.site}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        · {formatRelativeDate(item.publishedDate)}
-                      </span>
-                      <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <span className="text-[10px] text-[var(--text-muted)]">{item.site}</span>
+                      <span className="text-[10px] text-[var(--text-muted)]">· {formatRelativeDate(item.publishedDate)}</span>
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-auto text-[10px] text-[var(--accent-primary)] hover:text-[var(--accent-glow)] flex items-center gap-1 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Read article <ExternalLink className="h-3 w-3" />
+                      </a>
                     </div>
                   </div>
+                </a>
+                {/* AI Summary */}
+                <div className="mt-2 pt-2 border-t border-[var(--border-subtle)]">
+                  <AiSummaryButton item={item} />
                 </div>
-              </a>
+              </div>
             ))}
           </div>
         )}
