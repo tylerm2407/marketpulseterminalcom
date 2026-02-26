@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import {
   Mail, Lock, ArrowRight, Loader2, ExternalLink,
-  Check, X, Crown, Zap, TrendingUp, Bell, Shield, UserRound, Eye, EyeOff
+  Check, X, Crown, Zap, TrendingUp, Bell, Shield, UserRound, Eye, EyeOff, Sparkles
 } from 'lucide-react';
 import logoImg from '@/assets/logo.png';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,15 +15,22 @@ import { toast } from 'sonner';
 import { AmbientOrbs } from '@/components/effects/AmbientOrbs';
 
 const features = [
-  { name: 'Stock Dossiers & Charts', free: true, pro: true },
-  { name: 'Market Overview & News', free: true, pro: true },
-  { name: 'Earnings Calendar', free: true, pro: true },
-  { name: 'Watchlist', free: '10 stocks', pro: 'Unlimited' },
-  { name: 'Portfolio Tracking', free: false, pro: true },
-  { name: 'Price Alerts', free: false, pro: true },
-  { name: 'AI Stock Screener', free: false, pro: true },
-  { name: 'Social Sentiment (Grok AI)', free: false, pro: true },
-  { name: 'Real-time Data', free: 'Delayed', pro: 'Live' },
+  { name: 'Stock Dossiers & Charts', free: true, pro: true, bundle: true },
+  { name: 'Market Overview & News', free: true, pro: true, bundle: true },
+  { name: 'Earnings Calendar', free: true, pro: true, bundle: true },
+  { name: 'Watchlist', free: '10 stocks', pro: 'Unlimited', bundle: 'Unlimited' },
+  { name: 'Portfolio Tracking', free: false, pro: true, bundle: true },
+  { name: 'Price Alerts', free: false, pro: true, bundle: true },
+  { name: 'AI Stock Screener', free: false, pro: true, bundle: true },
+  { name: 'Social Sentiment (Grok AI)', free: false, pro: true, bundle: true },
+  { name: 'Real-time Data', free: 'Delayed', pro: 'Live', bundle: 'Live' },
+];
+
+const bundleExtras = [
+  'Everything in Pro',
+  'Access to all Nova apps',
+  'Unified subscription',
+  'Cross-app insights',
 ];
 
 const highlights = [
@@ -111,10 +118,10 @@ export default function Auth() {
           </div>
 
           {/* Plan comparison cards */}
-          <div className="grid grid-cols-2 gap-4 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+          <div className="grid grid-cols-3 gap-3 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
 
             {/* Free */}
-            <div className="card-elevated p-4">
+            <div className="card-elevated p-3">
               <div className="flex items-center gap-1.5 mb-2">
                 <Zap className="h-4 w-4 text-[var(--text-muted)]" />
                 <span className="text-sm font-semibold text-[var(--text-secondary)]">Free</span>
@@ -140,7 +147,7 @@ export default function Auth() {
             </div>
 
             {/* Pro */}
-            <div className="card-elevated p-4 relative border-[var(--border-active)] !border-[rgba(79,142,247,0.35)]">
+            <div className="card-elevated p-3 relative border-[var(--border-active)] !border-[rgba(79,142,247,0.35)]">
               <Badge className="absolute -top-2.5 left-3 bg-[var(--accent-primary)] text-white text-[10px] px-2 border-0">
                 Most Popular
               </Badge>
@@ -162,6 +169,29 @@ export default function Auth() {
                         <span className="text-[var(--accent-primary)]"> ({f.pro})</span>
                       )}
                     </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Bundle */}
+            <div className="card-elevated p-3 relative !border-[rgba(234,179,8,0.35)]">
+              <Badge className="absolute -top-2.5 left-3 bg-warning text-black text-[10px] px-2 border-0">
+                Best Value
+              </Badge>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sparkles className="h-4 w-4 text-warning" />
+                <span className="text-sm font-semibold text-[var(--text-primary)]">Bundle</span>
+              </div>
+              <div className="text-2xl font-bold font-mono text-[var(--text-primary)] mb-0.5">
+                $29.99<span className="text-xs font-normal text-[var(--text-muted)]">/mo</span>
+              </div>
+              <p className="text-[10px] text-warning mb-3">NovaWealth ecosystem</p>
+              <ul className="space-y-1.5">
+                {bundleExtras.map(item => (
+                  <li key={item} className="flex items-start gap-1.5 text-xs">
+                    <Check className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />
+                    <span className="text-[var(--text-secondary)]">{item}</span>
                   </li>
                 ))}
               </ul>
