@@ -1,12 +1,17 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useNovaWealthSSO, clearNWSession } from '@/hooks/useNovaWealthSSO';
 import type { User, Session } from '@supabase/supabase-js';
+import type { NWSession } from '@/hooks/useNovaWealthSSO';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   isGuest: boolean;
+  nwSession: NWSession | null;
+  nwProcessing: boolean;
+  isNWPro: boolean;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInAsGuest: () => Promise<{ error: Error | null }>;
@@ -19,6 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const { nwSession, processing: nwProcessing, signOutNW, isNWPro } = useNovaWealthSSO();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -58,11 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    // Clear NW session if present
+    signOutNW();
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isGuest, signUp, signIn, signInAsGuest, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isGuest, nwSession, nwProcessing, isNWPro, signUp, signIn, signInAsGuest, signOut }}>
       {children}
     </AuthContext.Provider>
   );

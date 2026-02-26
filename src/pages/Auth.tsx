@@ -40,7 +40,7 @@ const highlights = [
 ];
 
 export default function Auth() {
-  const { user, loading, signIn, signUp, signInAsGuest } = useAuth();
+  const { user, loading, signIn, signUp, signInAsGuest, nwSession, nwProcessing } = useAuth();
   const [isSignUp, setIsSignUp] = useState(true);
   const [guestLoading, setGuestLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -48,8 +48,9 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
+  if (loading || nwProcessing) return null;
+  // Redirect if user has Supabase session OR NW session
+  if (user || nwSession) return <Navigate to="/" replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

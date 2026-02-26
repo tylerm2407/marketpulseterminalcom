@@ -101,7 +101,16 @@ export function AppAccessProvider({ children }: { children: ReactNode }) {
     await checkAccess(true);
   }, [checkAccess]);
 
-  const isPro = hasAccess && !isGuest;
+  // Check NW SSO pro status from auth context
+  const nwPro = (() => {
+    try {
+      const method = localStorage.getItem('nw_login_method');
+      const tier = localStorage.getItem('nw_tier');
+      return method === 'novawealth' && tier === 'pro';
+    } catch { return false; }
+  })();
+
+  const isPro = (hasAccess && !isGuest) || nwPro;
 
   return (
     <AppAccessContext.Provider
