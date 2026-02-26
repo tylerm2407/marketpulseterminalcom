@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom';
-import { Crown, Lock } from 'lucide-react';
+import { Crown, Lock, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface UpgradePromptProps {
   feature: string;
   description?: string;
 }
+
+const NOVAWEALTH_SUBSCRIBE_URL = 'https://novawealth.app/pricing';
 
 export function UpgradePrompt({ feature, description }: UpgradePromptProps) {
   const navigate = useNavigate();
@@ -17,13 +19,25 @@ export function UpgradePrompt({ feature, description }: UpgradePromptProps) {
       </div>
       <h2 className="text-lg font-bold text-foreground mb-2">{feature} is a Pro Feature</h2>
       <p className="text-sm text-muted-foreground max-w-sm mb-6">
-        {description || `Upgrade to MarketPulse Pro to unlock ${feature.toLowerCase()} and all premium features.`}
+        {description || `Upgrade to unlock ${feature.toLowerCase()} and all premium features.`}
       </p>
-      <Button onClick={() => navigate('/pricing')} className="bg-accent hover:bg-accent/90 text-accent-foreground gap-2">
-        <Crown className="h-4 w-4" />
-        Upgrade to Pro
-      </Button>
-      <p className="text-xs text-muted-foreground mt-3">Start with a 30-day free trial — no commitment</p>
+      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+        <Button onClick={() => navigate('/pricing')} className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground gap-2">
+          <Crown className="h-4 w-4" />
+          MarketPulse Pro — $19.99/mo
+        </Button>
+        <Button
+          variant="outline"
+          className="flex-1 gap-2"
+          onClick={() => window.open(NOVAWEALTH_SUBSCRIBE_URL, '_blank')}
+        >
+          <ExternalLink className="h-4 w-4" />
+          NovaWealth Bundle
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground mt-3">
+        MarketPulse Pro includes a 30-day free trial. The NovaWealth Bundle unlocks all apps.
+      </p>
     </div>
   );
 }

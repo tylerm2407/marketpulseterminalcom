@@ -176,6 +176,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_access: {
+        Row: {
+          email: string
+          id: string
+          last_novawealth_check: string | null
+          novawealth_subscriber: boolean
+          standalone_subscriber: boolean
+        }
+        Insert: {
+          email: string
+          id: string
+          last_novawealth_check?: string | null
+          novawealth_subscriber?: boolean
+          standalone_subscriber?: boolean
+        }
+        Update: {
+          email?: string
+          id?: string
+          last_novawealth_check?: string | null
+          novawealth_subscriber?: boolean
+          standalone_subscriber?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

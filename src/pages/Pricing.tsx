@@ -26,7 +26,7 @@ const features = [
 
 export default function Pricing() {
   const { user, session } = useAuth();
-  const { isPro, loading: subLoading, subscriptionEnd, refreshSubscription } = useSubscription();
+  const { isPro, loading: subLoading, subscriptionEnd, refreshAccess } = useSubscription();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [searchParams] = useSearchParams();
@@ -38,7 +38,7 @@ export default function Pricing() {
   // Track referral on successful payment redirect
   useEffect(() => {
     if (!success) return;
-    refreshSubscription();
+    refreshAccess();
 
     const stored = sessionStorage.getItem('mp_referral');
     if (!stored) return;
@@ -217,6 +217,22 @@ export default function Pricing() {
               )}
             </CardContent>
           </Card>
+        </div>
+
+        {/* NovaWealth Bundle Option */}
+        <div className="bg-card border border-border rounded-lg p-6 text-center mb-8">
+          <h3 className="text-base font-semibold text-foreground mb-1">Or get it all with NovaWealth</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Subscribe to the NovaWealth Bundle to unlock MarketPulse Pro and all other NovaWealth apps.
+          </p>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => window.open('https://novawealth.app/pricing', '_blank')}
+          >
+            <ExternalLink className="h-4 w-4" />
+            View NovaWealth Bundle
+          </Button>
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
