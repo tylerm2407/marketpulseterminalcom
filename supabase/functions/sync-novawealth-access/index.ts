@@ -7,9 +7,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const NOVAWEALTH_URL =
-  "https://dbwuegchdysuocbpsprd.supabase.co/functions/v1/verify-novawealth-subscription";
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -27,11 +24,14 @@ serve(async (req) => {
       throw new Error("user_id and email are required");
     }
 
+    const verifyUrl = Deno.env.get("NOVAWEALTH_VERIFY_URL");
+    if (!verifyUrl) throw new Error("NOVAWEALTH_VERIFY_URL not configured");
+
     const webhookSecret = Deno.env.get("NOVAWEALTH_WEBHOOK_SECRET");
     if (!webhookSecret) throw new Error("NOVAWEALTH_WEBHOOK_SECRET not configured");
 
     // Call external NovaWealth verification
-    const nwRes = await fetch(NOVAWEALTH_URL, {
+    const nwRes = await fetch(verifyUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -43,7 +43,7 @@ serve(async (req) => {
     const nwData = await nwRes.json();
     console.log("[sync-novawealth] response:", JSON.stringify(nwData));
 
-    const isSubscriber = nwData?.subscribed === true;
+    const isSubscriber = nwData?.novawealth_subscriber === true;
 
     // Upsert into user_access
     const { error: upsertError } = await supabase
