@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
@@ -13,9 +13,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="MarketPulse" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#0d1117" />
+    <meta name="theme-color" content="#080B14" />
 
-    <!-- Smart App Banner — replace 000000000 with your App Store numeric ID once live -->
+    <!-- Smart App Banner -->
     <meta name="apple-itunes-app" content="app-id=000000000, app-argument=https://marketpulseterminal.com" />
 
     <meta property="og:title" content="MarketPulse — AI Stock Analysis & Research" />
@@ -28,7 +28,6 @@
     <meta name="twitter:description" content="AI-powered stock analysis, screener, and alerts. Research any stock with transparent, source-linked data." />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
-    <!-- JSON-LD: SoftwareApplication schema for Google rich results -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -38,43 +37,19 @@
       "operatingSystem": "iOS, Web",
       "description": "AI-powered stock analysis with screener, price alerts, earnings calendar, and in-depth research. Transparent, source-linked data for everyday investors and serious traders.",
       "url": "https://marketpulseterminal.com",
-      "author": {
-        "@type": "Organization",
-        "name": "NovaWealth"
-      },
-      "publisher": {
-        "@type": "Organization",
-        "name": "NovaWealth"
-      },
+      "author": { "@type": "Organization", "name": "NovaWealth" },
+      "publisher": { "@type": "Organization", "name": "NovaWealth" },
       "offers": [
-        {
-          "@type": "Offer",
-          "name": "Free",
-          "price": "0",
-          "priceCurrency": "USD",
-          "description": "Stock dossiers, market overview, earnings calendar, watchlist up to 10 stocks"
-        },
-        {
-          "@type": "Offer",
-          "name": "Pro",
-          "price": "19.99",
-          "priceCurrency": "USD",
-          "description": "AI Stock Screener, unlimited watchlist, portfolio tracking, price alerts, social sentiment"
-        }
+        { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD", "description": "Stock dossiers, market overview, earnings calendar, watchlist up to 10 stocks" },
+        { "@type": "Offer", "name": "Pro", "price": "19.99", "priceCurrency": "USD", "description": "AI Stock Screener, unlimited watchlist, portfolio tracking, price alerts, social sentiment" }
       ],
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "ratingCount": "1",
-        "bestRating": "5",
-        "worstRating": "1"
-      }
+      "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "ratingCount": "1", "bestRating": "5", "worstRating": "1" }
     }
     </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>

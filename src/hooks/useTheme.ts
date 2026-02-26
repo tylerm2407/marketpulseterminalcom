@@ -1,33 +1,16 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback } from 'react';
 
-type Theme = 'light' | 'dark';
-
-function getInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'light';
-  try {
-    const stored = localStorage.getItem('marketpulse-theme');
-    if (stored === 'dark' || stored === 'light') return stored;
-  } catch {}
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
+type Theme = 'dark';
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.toggle('dark', theme === 'dark');
-    try {
-      localStorage.setItem('marketpulse-theme', theme);
-    } catch {}
-  }, [theme]);
+  const theme: Theme = 'dark';
 
   const toggleTheme = useCallback(() => {
-    setThemeState(prev => (prev === 'dark' ? 'light' : 'dark'));
+    // Dark-only design — no toggle needed
   }, []);
 
-  const setTheme = useCallback((t: Theme) => {
-    setThemeState(t);
+  const setTheme = useCallback((_t: string) => {
+    // Dark-only design
   }, []);
 
   return { theme, toggleTheme, setTheme };
