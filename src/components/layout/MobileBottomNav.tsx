@@ -27,7 +27,7 @@ export function MobileBottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 bg-card/95 backdrop-blur-md border-t border-border sm:hidden safe-bottom">
+    <nav className="fixed bottom-0 inset-x-0 z-50 glass border-t border-[rgba(79,142,247,0.1)] sm:hidden safe-bottom">
       <div className="flex items-stretch justify-around h-14">
         {navItems.map(({ label, icon: Icon, path }) => {
           const isActive =
@@ -41,21 +41,21 @@ export function MobileBottomNav() {
               onClick={() => handleNav(path)}
               className={`relative flex flex-col items-center justify-center flex-1 gap-0.5 text-[10px] font-medium transition-colors ${
                 isActive
-                  ? 'text-accent'
-                  : 'text-muted-foreground active:text-foreground'
-              } ${label === 'Profile' ? 'text-destructive' : ''}`}
+                  ? 'text-[var(--accent-primary)]'
+                  : 'text-[var(--text-muted)] active:text-[var(--text-primary)]'
+              } ${label === 'Profile' ? '!text-[var(--accent-danger)]' : ''}`}
             >
               <div className="relative">
                 <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
                 {label === 'Watchlist' && tickers.length > 0 && (
-                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-[var(--accent-primary)] text-white text-[9px] font-bold flex items-center justify-center">
                     {tickers.length}
                   </span>
                 )}
               </div>
               <span>{label === 'Profile' ? 'Sign Out' : label}</span>
               {isActive && label !== 'Profile' && (
-                <span className="absolute top-0 inset-x-4 h-0.5 rounded-b-full bg-accent" />
+                <span className="absolute top-0 inset-x-4 h-0.5 rounded-b-full" style={{ background: 'var(--accent-primary)', boxShadow: '0 0 8px rgba(79,142,247,0.5)' }} />
               )}
             </button>
           );
