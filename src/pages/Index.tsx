@@ -231,7 +231,7 @@ const Index = () => {
 function FeatureCard({ icon: Icon, title, description, delay = 0 }: { icon: React.ElementType; title: string; description: string; delay?: number }) {
   return (
     <TiltCard className="scroll-animate text-center card-elevated p-6" style={{ transitionDelay: `${delay}ms` }}>
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[rgba(79,142,247,0.1)] text-[var(--accent-primary)] mb-4">
+      <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[rgba(34,197,94,0.1)] text-[var(--accent-primary)] mb-4">
         <Icon className="h-5 w-5" />
       </div>
       <h3 className="font-display font-semibold text-[var(--text-primary)] mb-2">{title}</h3>

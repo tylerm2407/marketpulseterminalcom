@@ -13,10 +13,21 @@ export function ScrollAnimator() {
       { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
     );
 
-    const elements = document.querySelectorAll('.scroll-animate, .scroll-animate-left');
-    elements.forEach((el) => observer.observe(el));
+    function observeAll() {
+      const elements = document.querySelectorAll('.scroll-animate:not(.visible), .scroll-animate-left:not(.visible)');
+      elements.forEach((el) => observer.observe(el));
+    }
 
-    return () => observer.disconnect();
+    observeAll();
+
+    // Re-scan when new elements are added to the DOM
+    const mutation = new MutationObserver(() => observeAll());
+    mutation.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      mutation.disconnect();
+    };
   }, []);
 
   return null;

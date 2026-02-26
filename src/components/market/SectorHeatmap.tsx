@@ -8,13 +8,13 @@ interface SectorHeatmapProps {
 }
 
 function getHeatColor(pct: number): string {
-  if (pct >= 2) return 'bg-gain/90 text-gain-foreground';
-  if (pct >= 1) return 'bg-gain/60 text-foreground';
-  if (pct >= 0.25) return 'bg-gain/30 text-foreground';
-  if (pct >= -0.25) return 'bg-muted text-foreground';
-  if (pct >= -1) return 'bg-loss/30 text-foreground';
-  if (pct >= -2) return 'bg-loss/60 text-foreground';
-  return 'bg-loss/90 text-loss-foreground';
+  if (pct >= 2) return 'bg-[rgba(34,197,94,0.35)] text-[var(--text-primary)]';
+  if (pct >= 1) return 'bg-[rgba(34,197,94,0.22)] text-[var(--text-primary)]';
+  if (pct >= 0.25) return 'bg-[rgba(34,197,94,0.12)] text-[var(--text-primary)]';
+  if (pct >= -0.25) return 'bg-[var(--bg-elevated)] text-[var(--text-primary)]';
+  if (pct >= -1) return 'bg-[rgba(239,68,68,0.12)] text-[var(--text-primary)]';
+  if (pct >= -2) return 'bg-[rgba(239,68,68,0.22)] text-[var(--text-primary)]';
+  return 'bg-[rgba(239,68,68,0.35)] text-[var(--text-primary)]';
 }
 
 export function SectorHeatmap({ sectors, isLoading }: SectorHeatmapProps) {
@@ -37,13 +37,13 @@ export function SectorHeatmap({ sectors, isLoading }: SectorHeatmapProps) {
         return (
           <div
             key={sector.ticker}
-            className={`rounded-lg p-3 transition-transform hover:scale-[1.02] cursor-default ${getHeatColor(sector.changePercent)}`}
+            className={`rounded-lg p-3 transition-transform hover:scale-[1.02] cursor-default border border-[var(--border-subtle)] ${getHeatColor(sector.changePercent)}`}
           >
-            <div className="text-xs font-medium truncate opacity-80">{sector.name}</div>
-            <div className="text-lg font-bold font-mono leading-tight mt-0.5">
+            <div className="text-xs font-medium truncate text-[var(--text-secondary)]">{sector.name}</div>
+            <div className={`text-lg font-bold font-mono leading-tight mt-0.5 ${isPositive ? 'text-[var(--accent-success)]' : 'text-[var(--accent-danger)]'}`}>
               {isPositive ? '+' : ''}{sector.changePercent.toFixed(2)}%
             </div>
-            <div className="text-[10px] font-mono opacity-60 mt-0.5">{sector.ticker}</div>
+            <div className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">{sector.ticker}</div>
           </div>
         );
       })}
