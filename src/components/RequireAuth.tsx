@@ -6,16 +6,15 @@ import type { ReactNode } from 'react';
 const PUBLIC_ROUTES = ['/auth', '/privacy'];
 
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, nwSession, nwProcessing } = useAuth();
   const location = useLocation();
 
-  if (loading) return null;
+  if (loading || nwProcessing) return null;
 
   const isPublic = PUBLIC_ROUTES.some(route => location.pathname.startsWith(route));
 
-  // Guests have a user session (anonymous), so they pass through.
-  // Only redirect if there is no session at all.
-  if (!user && !isPublic) {
+  // Allow access if user has Supabase session OR NovaWealth session
+  if (!user && !nwSession && !isPublic) {
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 

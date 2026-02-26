@@ -298,6 +298,19 @@ export default function Pricing() {
           </Card>
         </div>
 
+        {/* NovaWealth note */}
+        <div className="bg-warning/5 border border-warning/20 rounded-lg p-4 mb-6 text-center">
+          <p className="text-sm text-foreground">
+            Already a <span className="font-semibold text-warning">NovaWealth Pro</span> subscriber? You have full access —{' '}
+            <a
+              href="https://novawealthhqcom.lovable.app/login?redirect_app=MarketPulse"
+              className="text-warning underline hover:text-warning/80 font-medium"
+            >
+              Log in with NovaWealth
+            </a>
+          </p>
+        </div>
+
         <p className="text-center text-xs text-muted-foreground">
           Cancel anytime during your trial — you won't be charged.{' '}
           {isYearly
