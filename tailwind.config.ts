@@ -90,12 +90,12 @@ export default {
         "2xl": "1.25rem",
       },
       boxShadow: {
-        'card': '0 4px 24px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.04) inset',
-        'card-hover': '0 4px 24px rgba(0,0,0,0.4), 0 0 30px rgba(79,142,247,0.12), 0 1px 0 rgba(255,255,255,0.04) inset',
-        'glow': '0 0 20px rgba(79,142,247,0.3)',
-        'glow-lg': '0 0 40px rgba(79,142,247,0.4)',
-        'btn': '0 4px 15px rgba(79,142,247,0.3)',
-        'btn-hover': '0 8px 25px rgba(79,142,247,0.5)',
+        'card': '0 4px 24px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.03) inset',
+        'card-hover': '0 4px 24px rgba(0,0,0,0.4), 0 0 30px rgba(34,197,94,0.10), 0 1px 0 rgba(255,255,255,0.03) inset',
+        'glow': '0 0 20px rgba(34,197,94,0.25)',
+        'glow-lg': '0 0 40px rgba(34,197,94,0.3)',
+        'btn': '0 4px 15px rgba(34,197,94,0.25)',
+        'btn-hover': '0 8px 25px rgba(34,197,94,0.4)',
       },
       keyframes: {
         "accordion-down": {

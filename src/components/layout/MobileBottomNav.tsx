@@ -1,5 +1,5 @@
-import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { Home, Eye, Wallet, Bell, UserRound, LogOut } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Home, Eye, Wallet, Bell, UserRound } from 'lucide-react';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -27,22 +27,16 @@ export function MobileBottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 glass border-t border-[rgba(79,142,247,0.1)] sm:hidden safe-bottom">
+    <nav className="fixed bottom-0 inset-x-0 z-50 glass border-t border-[rgba(34,197,94,0.1)] sm:hidden safe-bottom">
       <div className="flex items-stretch justify-around h-14">
         {navItems.map(({ label, icon: Icon, path }) => {
-          const isActive =
-            path === '/'
-              ? location.pathname === '/'
-              : location.pathname.startsWith(path);
-
+          const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
           return (
             <button
               key={path}
               onClick={() => handleNav(path)}
               className={`relative flex flex-col items-center justify-center flex-1 gap-0.5 text-[10px] font-medium transition-colors ${
-                isActive
-                  ? 'text-[var(--accent-primary)]'
-                  : 'text-[var(--text-muted)] active:text-[var(--text-primary)]'
+                isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)] active:text-[var(--text-primary)]'
               } ${label === 'Profile' ? '!text-[var(--accent-danger)]' : ''}`}
             >
               <div className="relative">
@@ -55,7 +49,7 @@ export function MobileBottomNav() {
               </div>
               <span>{label === 'Profile' ? 'Sign Out' : label}</span>
               {isActive && label !== 'Profile' && (
-                <span className="absolute top-0 inset-x-4 h-0.5 rounded-b-full" style={{ background: 'var(--accent-primary)', boxShadow: '0 0 8px rgba(79,142,247,0.5)' }} />
+                <span className="absolute top-0 inset-x-4 h-0.5 rounded-b-full" style={{ background: 'var(--accent-primary)', boxShadow: '0 0 8px rgba(34,197,94,0.5)' }} />
               )}
             </button>
           );
