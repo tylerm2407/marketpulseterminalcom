@@ -26,3 +26,12 @@ verify_jwt = false
 
 [functions.referral-proxy]
 verify_jwt = false
+
+[functions.sync-novawealth-access]
+verify_jwt = false
+
+[functions.handle-standalone-webhook]
+verify_jwt = false
+
+[functions.news-summarize]
+verify_jwt = false
