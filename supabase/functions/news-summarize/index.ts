@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 import {
-  checkAndRecordAiUsage,
-  aiLimitResponse,
-  getUserIdFromRequest,
-  COST_ESTIMATES,
+  safeParseBody, sanitize, checkUnexpectedFields, validationError,
+} from "../_shared/inputValidator.ts";
+import {
+  checkAndRecordAiUsage, aiLimitResponse, getUserIdFromRequest, COST_ESTIMATES,
 } from "../_shared/aiUsageGuard.ts";
 
 const corsHeaders = {
@@ -12,16 +13,29 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const RATE_LIMIT = { functionName: "news-summarize", maxRequests: 15, windowSeconds: 60 };
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return validationError(corsHeaders, "Method not allowed");
 
   try {
-    const { title, text, site } = await req.json();
-    if (!title) {
-      return new Response(JSON.stringify({ error: "title is required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const rl = await checkRateLimit(req, RATE_LIMIT);
+    if (!rl.allowed) return rateLimitResponse(corsHeaders, rl.retryAfterSeconds!);
+
+    const parsed = await safeParseBody(req);
+    if (!parsed.ok) return validationError(corsHeaders, parsed.error);
+    const body = parsed.body;
+
+    const unexpected = checkUnexpectedFields(body, ["title", "text", "site"]);
+    if (unexpected.length > 0) return validationError(corsHeaders, `Unexpected fields: ${unexpected.join(", ")}`);
+
+    if (typeof body.title !== "string" || body.title.trim().length === 0 || body.title.length > 500) {
+      return validationError(corsHeaders, "title is required (1-500 chars)");
     }
+    const title = sanitize(body.title as string);
+    const text = typeof body.text === "string" ? sanitize(body.text as string).substring(0, 2000) : "No excerpt available.";
+    const site = typeof body.site === "string" ? sanitize(body.site as string).substring(0, 100) : "Unknown";
 
     const userId = await getUserIdFromRequest(req);
     let aiNotification: any = undefined;
@@ -32,16 +46,13 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    if (!LOVABLE_API_KEY) throw new Error("Server configuration error");
 
-    const prompt = `Summarize this financial news article in 3-4 concise bullet points. Focus on the key facts, market impact, and what investors should know.\n\nTitle: ${title}\nExcerpt: ${text || "No excerpt available."}\nSource: ${site || "Unknown"}\n\nKeep each bullet point to 1-2 sentences. Be factual and neutral. Do NOT give investment advice.`;
+    const prompt = `Summarize this financial news article in 3-4 concise bullet points. Focus on the key facts, market impact, and what investors should know.\n\nTitle: ${title}\nExcerpt: ${text}\nSource: ${site}\n\nKeep each bullet point to 1-2 sentences. Be factual and neutral. Do NOT give investment advice.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
@@ -53,7 +64,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -64,7 +75,7 @@ serve(async (req) => {
       }
       const errText = await response.text();
       console.error("AI gateway error:", response.status, errText);
-      throw new Error(`AI gateway returned ${response.status}`);
+      throw new Error("AI service error");
     }
 
     const data = await response.json();
@@ -75,7 +86,7 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("news-summarize error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An error occurred processing your request" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

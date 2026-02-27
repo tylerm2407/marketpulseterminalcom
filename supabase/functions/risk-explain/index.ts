@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 import {
-  checkAndRecordAiUsage,
-  aiLimitResponse,
-  getUserIdFromRequest,
-  COST_ESTIMATES,
+  safeParseBody, isValidTicker, sanitize, checkUnexpectedFields, validationError,
+} from "../_shared/inputValidator.ts";
+import {
+  checkAndRecordAiUsage, aiLimitResponse, getUserIdFromRequest, COST_ESTIMATES,
 } from "../_shared/aiUsageGuard.ts";
 
 const corsHeaders = {
@@ -12,13 +13,32 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const RATE_LIMIT = { functionName: "risk-explain", maxRequests: 15, windowSeconds: 60 };
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return validationError(corsHeaders, "Method not allowed");
 
   try {
-    const { ticker, companyName, riskTitle, riskDescription, riskCategory, riskSeverity } = await req.json();
+    const rl = await checkRateLimit(req, RATE_LIMIT);
+    if (!rl.allowed) return rateLimitResponse(corsHeaders, rl.retryAfterSeconds!);
 
-    // ── AI usage guard ──
+    const parsed = await safeParseBody(req);
+    if (!parsed.ok) return validationError(corsHeaders, parsed.error);
+    const body = parsed.body;
+
+    const unexpected = checkUnexpectedFields(body, ["ticker", "companyName", "riskTitle", "riskDescription", "riskCategory", "riskSeverity"]);
+    if (unexpected.length > 0) return validationError(corsHeaders, `Unexpected fields: ${unexpected.join(", ")}`);
+
+    if (!isValidTicker(body.ticker)) return validationError(corsHeaders, "Invalid ticker format");
+    const ticker = (body.ticker as string).toUpperCase();
+    const companyName = typeof body.companyName === "string" ? sanitize(body.companyName as string).substring(0, 100) : ticker;
+    const riskTitle = typeof body.riskTitle === "string" ? sanitize(body.riskTitle as string).substring(0, 200) : "";
+    const riskDescription = typeof body.riskDescription === "string" ? sanitize(body.riskDescription as string).substring(0, 500) : "";
+    const riskCategory = typeof body.riskCategory === "string" ? sanitize(body.riskCategory as string).substring(0, 50) : "unknown";
+    const riskSeverity = typeof body.riskSeverity === "string" ? sanitize(body.riskSeverity as string).substring(0, 20) : "unknown";
+
+    // AI usage guard
     const userId = await getUserIdFromRequest(req);
     let aiNotification: any = undefined;
     if (userId) {
@@ -28,14 +48,11 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    if (!LOVABLE_API_KEY) throw new Error("Server configuration error");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
@@ -53,7 +70,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited — please try again shortly." }), {
+        return new Response(JSON.stringify({ error: "Rate limited." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -64,7 +81,7 @@ serve(async (req) => {
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      throw new Error("AI gateway error");
+      throw new Error("AI service error");
     }
 
     const data = await response.json();
@@ -75,7 +92,7 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("risk-explain error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An error occurred processing your request" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

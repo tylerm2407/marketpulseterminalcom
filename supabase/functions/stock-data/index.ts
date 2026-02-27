@@ -1,5 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
+import {
+  safeParseBody,
+  isValidTicker,
+  validateTickerArray,
+  isValidSearchQuery,
+  sanitize,
+  checkUnexpectedFields,
+  validationError,
+} from "../_shared/inputValidator.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,13 +20,16 @@ const POLYGON_BASE = 'https://api.polygon.io';
 
 // ---------- Cache TTL Strategy (in seconds) ----------
 const CACHE_TTL: Record<string, number> = {
-  'dossier':    4 * 60 * 60,   // 4 hours
-  'quote':      3 * 60,        // 3 minutes
-  'search':     24 * 60 * 60,  // 24 hours
-  'sparklines': 30 * 60,       // 30 minutes
-  'news':       15 * 60,       // 15 minutes
-  'market-overview': 5 * 60,   // 5 minutes
+  'dossier':    4 * 60 * 60,
+  'quote':      3 * 60,
+  'search':     24 * 60 * 60,
+  'sparklines': 30 * 60,
+  'news':       15 * 60,
+  'market-overview': 5 * 60,
 };
+
+// ---------- Rate limit config ----------
+const RATE_LIMIT = { functionName: "stock-data", maxRequests: 30, windowSeconds: 60 };
 
 // ---------- Supabase client (service role for cache writes) ----------
 function getSupabaseAdmin() {
@@ -41,7 +54,6 @@ async function getFromCache(key: string): Promise<any | null> {
       sb.from('api_cache').delete().eq('cache_key', key).then(() => {});
       return null;
     }
-    console.log(`Cache HIT: ${key}`);
     return data.data;
   } catch {
     return null;
@@ -57,7 +69,6 @@ async function setCache(key: string, data: any, ttlSeconds: number): Promise<voi
       { cache_key: key, data, cached_at: new Date().toISOString(), expires_at: expiresAt },
       { onConflict: 'cache_key' }
     );
-    console.log(`Cache SET: ${key} (TTL ${ttlSeconds}s)`);
   } catch (err) {
     console.warn('Cache write failed:', err);
   }
@@ -78,12 +89,10 @@ async function fetchPolygon(
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      console.log(`Polygon fetch (attempt ${attempt + 1}): ${url.toString().replace(/apiKey=[^&]+/, 'apiKey=***')}`);
       const res = await fetch(url.toString());
 
       if (res.status === 429 && attempt < retries) {
         const waitMs = Math.min(1000 * Math.pow(2, attempt + 1), 8000);
-        console.warn(`Polygon rate limited (429), retrying in ${waitMs}ms...`);
         await new Promise((r) => setTimeout(r, waitMs));
         continue;
       }
@@ -97,7 +106,6 @@ async function fetchPolygon(
     } catch (err) {
       if (attempt < retries) {
         const waitMs = 1000 * Math.pow(2, attempt);
-        console.warn(`Polygon network error, retrying in ${waitMs}ms:`, err);
         await new Promise((r) => setTimeout(r, waitMs));
         continue;
       }
@@ -117,13 +125,7 @@ async function fetchDossier(ticker: string, apiKey: string) {
   const fromDate5y = getDateNDaysAgo(1825);
   const toDate = getToday();
 
-  const [
-    tickerDetails,
-    snapshot,
-    financials,
-    news,
-    priceHistory,
-  ] = await Promise.all([
+  const [tickerDetails, snapshot, financials, news, priceHistory] = await Promise.all([
     fetchPolygon(`/v3/reference/tickers/${ticker}`, {}, apiKey),
     fetchPolygon(`/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}`, {}, apiKey),
     fetchPolygon(`/vX/reference/financials`, { ticker, limit: '20', order: 'desc', sort: 'period_of_report_date' }, apiKey),
@@ -141,14 +143,8 @@ async function fetchDossier(ticker: string, apiKey: string) {
   const quarterlyFinancials = financialResults.filter((f: any) => f.timeframe === 'quarterly').slice(0, 4);
 
   const result = {
-    profile,
-    snapshot: snap,
-    annualFinancials,
-    quarterlyFinancials,
-    priceHistory: priceResults,
-    news: newsResults,
-    holders: [],
-    insiders: [],
+    profile, snapshot: snap, annualFinancials, quarterlyFinancials,
+    priceHistory: priceResults, news: newsResults, holders: [], insiders: [],
   };
 
   if (result.profile && result.snapshot) {
@@ -174,15 +170,9 @@ async function fetchQuotes(tickers: string[], apiKey: string) {
   if (uncachedTickers.length > 0) {
     const freshResults = await Promise.all(
       uncachedTickers.map(async (ticker) => {
-        const data = await fetchPolygon(
-          `/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}`,
-          {},
-          apiKey
-        );
+        const data = await fetchPolygon(`/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}`, {}, apiKey);
         const snap = data?.ticker || null;
-        if (snap) {
-          await setCache(`quote:${ticker}`, snap, CACHE_TTL.quote);
-        }
+        if (snap) await setCache(`quote:${ticker}`, snap, CACHE_TTL.quote);
         return snap;
       })
     );
@@ -198,19 +188,11 @@ async function fetchSearch(query: string, apiKey: string) {
   if (cached) return cached;
 
   const data = await fetchPolygon('/v3/reference/tickers', {
-    search: query,
-    active: 'true',
-    market: 'stocks',
-    limit: '10',
-    order: 'asc',
-    sort: 'ticker',
+    search: query, active: 'true', market: 'stocks', limit: '10', order: 'asc', sort: 'ticker',
   }, apiKey);
 
   const results = data?.results || [];
-  if (results.length > 0) {
-    await setCache(cacheKey, results, CACHE_TTL.search);
-  }
-
+  if (results.length > 0) await setCache(cacheKey, results, CACHE_TTL.search);
   return results;
 }
 
@@ -232,19 +214,13 @@ async function fetchSparklines(tickers: string[], apiKey: string) {
     const to = getToday();
     const freshResults = await Promise.all(
       uncachedTickers.map(async (ticker) => {
-        const data = await fetchPolygon(
-          `/v2/aggs/ticker/${ticker}/range/1/day/${from}/${to}`,
-          { adjusted: 'true', sort: 'asc', limit: '50' },
-          apiKey
-        );
+        const data = await fetchPolygon(`/v2/aggs/ticker/${ticker}/range/1/day/${from}/${to}`, { adjusted: 'true', sort: 'asc', limit: '50' }, apiKey);
         const bars = data?.results || [];
         const sparkData = {
           symbol: ticker,
           prices: bars.map((b: any) => b.c).filter((v: any) => typeof v === 'number'),
         };
-        if (sparkData.prices.length > 0) {
-          await setCache(`sparkline:${ticker}`, sparkData, CACHE_TTL.sparklines);
-        }
+        if (sparkData.prices.length > 0) await setCache(`sparkline:${ticker}`, sparkData, CACHE_TTL.sparklines);
         return sparkData;
       })
     );
@@ -255,20 +231,11 @@ async function fetchSparklines(tickers: string[], apiKey: string) {
 }
 
 // ---------- Market Overview ----------
-// Index ETFs and sector ETFs for market overview
 const INDEX_TICKERS = ['SPY', 'QQQ', 'DIA', 'IWM'];
 const SECTOR_ETFS: Record<string, string> = {
-  XLK: 'Technology',
-  XLF: 'Financial Services',
-  XLV: 'Healthcare',
-  XLC: 'Communication Services',
-  XLY: 'Consumer Cyclical',
-  XLP: 'Consumer Defensive',
-  XLE: 'Energy',
-  XLI: 'Industrials',
-  XLB: 'Materials',
-  XLRE: 'Real Estate',
-  XLU: 'Utilities',
+  XLK: 'Technology', XLF: 'Financial Services', XLV: 'Healthcare',
+  XLC: 'Communication Services', XLY: 'Consumer Cyclical', XLP: 'Consumer Defensive',
+  XLE: 'Energy', XLI: 'Industrials', XLB: 'Materials', XLRE: 'Real Estate', XLU: 'Utilities',
 };
 
 async function fetchMarketOverview(apiKey: string) {
@@ -277,14 +244,9 @@ async function fetchMarketOverview(apiKey: string) {
   if (cached) return cached;
 
   const allTickers = [...INDEX_TICKERS, ...Object.keys(SECTOR_ETFS)];
-
   const snapshots = await Promise.all(
     allTickers.map(async (ticker) => {
-      const data = await fetchPolygon(
-        `/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}`,
-        {},
-        apiKey
-      );
+      const data = await fetchPolygon(`/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}`, {}, apiKey);
       return { ticker, snapshot: data?.ticker || null };
     })
   );
@@ -297,16 +259,9 @@ async function fetchMarketOverview(apiKey: string) {
       const prevDay = snap.prevDay || snap.prev_day || {};
       const price = lastTrade.p || snap.day?.c || 0;
       const prevClose = prevDay.c || price;
-      const indexNames: Record<string, string> = {
-        SPY: 'S&P 500',
-        QQQ: 'NASDAQ 100',
-        DIA: 'Dow Jones',
-        IWM: 'Russell 2000',
-      };
+      const indexNames: Record<string, string> = { SPY: 'S&P 500', QQQ: 'NASDAQ 100', DIA: 'Dow Jones', IWM: 'Russell 2000' };
       return {
-        ticker: s.ticker,
-        name: indexNames[s.ticker] || s.ticker,
-        price,
+        ticker: s.ticker, name: indexNames[s.ticker] || s.ticker, price,
         change: snap.todaysChange ?? (price - prevClose),
         changePercent: snap.todaysChangePerc ?? (prevClose ? ((price - prevClose) / prevClose) * 100 : 0),
       };
@@ -321,9 +276,7 @@ async function fetchMarketOverview(apiKey: string) {
       const price = lastTrade.p || snap.day?.c || 0;
       const prevClose = prevDay.c || price;
       return {
-        ticker: s.ticker,
-        name: SECTOR_ETFS[s.ticker],
-        price,
+        ticker: s.ticker, name: SECTOR_ETFS[s.ticker], price,
         change: snap.todaysChange ?? (price - prevClose),
         changePercent: snap.todaysChangePerc ?? (prevClose ? ((price - prevClose) / prevClose) * 100 : 0),
       };
@@ -331,11 +284,7 @@ async function fetchMarketOverview(apiKey: string) {
     .sort((a, b) => b.changePercent - a.changePercent);
 
   const result = { indices, sectors, timestamp: new Date().toISOString() };
-
-  if (indices.length > 0) {
-    await setCache(cacheKey, result, CACHE_TTL['market-overview']);
-  }
-
+  if (indices.length > 0) await setCache(cacheKey, result, CACHE_TTL['market-overview']);
   return result;
 }
 
@@ -364,49 +313,84 @@ async function maybeCleanupCache() {
   }
 }
 
+// ---------- Allowed types ----------
+const VALID_TYPES = new Set(["dossier", "quote", "search", "sparklines", "market-overview"]);
+
 // ---------- Main handler ----------
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Only accept POST
+  if (req.method !== 'POST') {
+    return validationError(corsHeaders, "Method not allowed");
+  }
+
   try {
+    // Rate limit
+    const rl = await checkRateLimit(req, RATE_LIMIT);
+    if (!rl.allowed) return rateLimitResponse(corsHeaders, rl.retryAfterSeconds!);
+
     const apiKey = Deno.env.get('POLYGON_API_KEY');
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: 'POLYGON_API_KEY is not configured' }),
+        JSON.stringify({ error: 'Server configuration error' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { type, ticker, tickers, query } = await req.json();
+    // Safe parse body
+    const parsed = await safeParseBody(req);
+    if (!parsed.ok) return validationError(corsHeaders, parsed.error);
+    const body = parsed.body;
+
+    const type = body.type;
+    if (typeof type !== "string" || !VALID_TYPES.has(type)) {
+      return validationError(corsHeaders, `Invalid type. Must be one of: ${[...VALID_TYPES].join(", ")}`);
+    }
+
+    // Reject unexpected fields
+    const allowedFields = ["type", "ticker", "tickers", "query"];
+    const unexpected = checkUnexpectedFields(body, allowedFields);
+    if (unexpected.length > 0) {
+      return validationError(corsHeaders, `Unexpected fields: ${unexpected.join(", ")}`);
+    }
+
     let data: any;
 
     switch (type) {
-      case 'dossier':
-        if (!ticker) throw new Error('ticker is required for dossier type');
-        data = await fetchDossier(ticker.toUpperCase(), apiKey);
+      case 'dossier': {
+        if (!isValidTicker(body.ticker)) return validationError(corsHeaders, "Invalid ticker format");
+        data = await fetchDossier((body.ticker as string).toUpperCase(), apiKey);
         break;
-      case 'quote':
-        if (!tickers?.length && !ticker) throw new Error('ticker(s) required for quote type');
-        data = await fetchQuotes(
-          (tickers || [ticker]).map((t: string) => t.toUpperCase()),
-          apiKey
-        );
+      }
+      case 'quote': {
+        if (body.tickers) {
+          const v = validateTickerArray(body.tickers, 50);
+          if (!v.valid) return validationError(corsHeaders, v.error);
+          data = await fetchQuotes(v.tickers, apiKey);
+        } else if (isValidTicker(body.ticker)) {
+          data = await fetchQuotes([(body.ticker as string).toUpperCase()], apiKey);
+        } else {
+          return validationError(corsHeaders, "ticker or tickers required for quote type");
+        }
         break;
-      case 'search':
-        if (!query) throw new Error('query is required for search type');
-        data = await fetchSearch(query, apiKey);
+      }
+      case 'search': {
+        if (!isValidSearchQuery(body.query, 100)) return validationError(corsHeaders, "Invalid query (1-100 chars)");
+        data = await fetchSearch(sanitize(body.query as string), apiKey);
         break;
-      case 'sparklines':
-        if (!tickers?.length) throw new Error('tickers required for sparklines type');
-        data = await fetchSparklines(tickers.map((t: string) => t.toUpperCase()), apiKey);
+      }
+      case 'sparklines': {
+        const v = validateTickerArray(body.tickers, 50);
+        if (!v.valid) return validationError(corsHeaders, v.error);
+        data = await fetchSparklines(v.tickers, apiKey);
         break;
+      }
       case 'market-overview':
         data = await fetchMarketOverview(apiKey);
         break;
-      default:
-        throw new Error(`Unknown type: ${type}`);
     }
 
     maybeCleanupCache().catch(() => {});
@@ -419,8 +403,8 @@ serve(async (req) => {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('stock-data error:', message);
     return new Response(
-      JSON.stringify({ error: message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: 'An error occurred processing your request' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
