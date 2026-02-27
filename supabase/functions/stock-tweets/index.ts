@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 import {
-  checkAndRecordAiUsage,
-  aiLimitResponse,
-  getUserIdFromRequest,
-  COST_ESTIMATES,
+  safeParseBody, isValidTicker, sanitize, checkUnexpectedFields, validationError,
+} from "../_shared/inputValidator.ts";
+import {
+  checkAndRecordAiUsage, aiLimitResponse, getUserIdFromRequest, COST_ESTIMATES,
 } from "../_shared/aiUsageGuard.ts";
 
 const corsHeaders = {
@@ -14,6 +15,7 @@ const corsHeaders = {
 };
 
 const CACHE_TTL_SECONDS = 15 * 60;
+const RATE_LIMIT = { functionName: "stock-tweets", maxRequests: 10, windowSeconds: 60 };
 
 function getSupabaseAdmin() {
   const url = Deno.env.get("SUPABASE_URL");
@@ -32,7 +34,6 @@ async function getFromCache(key: string): Promise<any | null> {
       sb.from("api_cache").delete().eq("cache_key", key).then(() => {});
       return null;
     }
-    console.log(`Cache HIT: ${key}`);
     return data.data;
   } catch { return null; }
 }
@@ -46,25 +47,29 @@ async function setCache(key: string, data: any): Promise<void> {
       { cache_key: key, data, cached_at: new Date().toISOString(), expires_at: expiresAt },
       { onConflict: "cache_key" }
     );
-    console.log(`Cache SET: ${key} (TTL ${CACHE_TTL_SECONDS}s)`);
   } catch (err) { console.warn("Cache write failed:", err); }
 }
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return validationError(corsHeaders, "Method not allowed");
 
   try {
-    const { ticker, companyName } = await req.json();
-    if (!ticker) {
-      return new Response(JSON.stringify({ error: "ticker is required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const rl = await checkRateLimit(req, RATE_LIMIT);
+    if (!rl.allowed) return rateLimitResponse(corsHeaders, rl.retryAfterSeconds!);
 
-    const upperTicker = ticker.toUpperCase();
+    const parsed = await safeParseBody(req);
+    if (!parsed.ok) return validationError(corsHeaders, parsed.error);
+    const body = parsed.body;
+
+    const unexpected = checkUnexpectedFields(body, ["ticker", "companyName"]);
+    if (unexpected.length > 0) return validationError(corsHeaders, `Unexpected fields: ${unexpected.join(", ")}`);
+
+    if (!isValidTicker(body.ticker)) return validationError(corsHeaders, "Invalid ticker format");
+    const upperTicker = (body.ticker as string).toUpperCase();
+    const companyName = typeof body.companyName === "string" ? sanitize(body.companyName).substring(0, 100) : upperTicker;
+
     const cacheKey = `tweets:${upperTicker}`;
-
-    // Check cache first (no usage cost if cached)
     const cached = await getFromCache(cacheKey);
     if (cached) {
       return new Response(JSON.stringify(cached), {
@@ -72,7 +77,7 @@ serve(async (req) => {
       });
     }
 
-    // ── AI usage guard (only if cache miss) ──
+    // AI usage guard (only if cache miss)
     const userId = await getUserIdFromRequest(req);
     let aiNotification: any = undefined;
     if (userId) {
@@ -82,16 +87,13 @@ serve(async (req) => {
     }
 
     const GROK_API_KEY = Deno.env.get("GROK_API_KEY");
-    if (!GROK_API_KEY) throw new Error("GROK_API_KEY is not configured");
+    if (!GROK_API_KEY) throw new Error("Server configuration error");
 
-    const prompt = `Search X (Twitter) for the most relevant and trending tweets about ${companyName || upperTicker} (ticker: $${upperTicker}) from the last 48 hours.\n\nReturn EXACTLY 5-8 tweets in this JSON format (no markdown, no code fences, just raw JSON):\n[\n  {\n    "username": "@handle",\n    "displayName": "Display Name",\n    "content": "The tweet text (keep it under 280 chars)",\n    "likes": 1234,\n    "retweets": 567,\n    "timestamp": "2h ago",\n    "sentiment": "bullish" | "bearish" | "neutral"\n  }\n]\n\nFocus on tweets from:\n- Financial analysts and traders\n- News accounts covering $${upperTicker}\n- Popular finance influencers\n- Any viral tweets about the stock\n\nPrioritize tweets with high engagement (likes/retweets). Include the actual tweet content. Return ONLY the JSON array, nothing else.`;
+    const prompt = `Search X (Twitter) for the most relevant and trending tweets about ${companyName} (ticker: $${upperTicker}) from the last 48 hours.\n\nReturn EXACTLY 5-8 tweets in this JSON format (no markdown, no code fences, just raw JSON):\n[\n  {\n    "username": "@handle",\n    "displayName": "Display Name",\n    "content": "The tweet text (keep it under 280 chars)",\n    "likes": 1234,\n    "retweets": 567,\n    "timestamp": "2h ago",\n    "sentiment": "bullish" | "bearish" | "neutral"\n  }\n]\n\nFocus on tweets from:\n- Financial analysts and traders\n- News accounts covering $${upperTicker}\n- Popular finance influencers\n- Any viral tweets about the stock\n\nPrioritize tweets with high engagement (likes/retweets). Include the actual tweet content. Return ONLY the JSON array, nothing else.`;
 
     const response = await fetch("https://api.x.ai/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${GROK_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${GROK_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "grok-3-mini",
         messages: [
@@ -105,18 +107,18 @@ serve(async (req) => {
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402 || response.status === 401) {
-        return new Response(JSON.stringify({ error: "Grok API authentication failed. Check your API key." }), {
+        return new Response(JSON.stringify({ error: "AI service authentication error." }), {
           status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const errText = await response.text();
       console.error("Grok API error:", response.status, errText);
-      throw new Error(`Grok API returned ${response.status}`);
+      throw new Error("AI service error");
     }
 
     const data = await response.json();
@@ -139,7 +141,7 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("stock-tweets error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An error occurred processing your request" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
