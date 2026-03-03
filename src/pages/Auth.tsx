@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useReferralDetection } from '@/hooks/useReferralDetection';
 import {
   Mail, Lock, ArrowRight, Loader2, ExternalLink,
@@ -49,6 +49,8 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [searchParams] = useSearchParams();
+  const checkoutSuccess = searchParams.get('checkout_success') === 'true';
 
   if (loading || nwProcessing) return null;
   // Redirect if user has Supabase session OR NW session
@@ -211,14 +213,22 @@ export default function Auth() {
       <div className="lg:w-[45%] flex items-center justify-center px-6 py-12 lg:py-0 relative">
         <div className="w-full max-w-sm">
 
+          {checkoutSuccess && (
+            <div className="bg-gain/10 border border-gain/30 rounded-lg p-4 mb-6 text-center">
+              <p className="text-sm font-medium text-gain">🎉 Payment successful! Create your account to get started.</p>
+            </div>
+          )}
+
           <div className="mb-8 text-center">
             <h2 className="text-2xl font-display font-bold text-[var(--text-primary)]">
-              {isSignUp ? 'Create your free account' : 'Welcome back'}
+              {checkoutSuccess ? 'Create your account' : isSignUp ? 'Create your free account' : 'Welcome back'}
             </h2>
             <p className="text-sm text-[var(--text-secondary)] mt-1">
-              {isSignUp
-                ? 'Start your 30-day Pro trial — no card needed'
-                : 'Sign in to access your dashboard'}
+              {checkoutSuccess
+                ? 'Set up your account to access your Pro subscription'
+                : isSignUp
+                  ? 'Start your 30-day Pro trial — no card needed'
+                  : 'Sign in to access your dashboard'}
             </p>
           </div>
 

@@ -9,7 +9,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ReferralCodeInput, type ReferralValidation } from '@/components/ReferralCodeInput';
 import { ReferralDashboard } from '@/components/ReferralDashboard';
 import { clearStoredReferralCode } from '@/hooks/useReferralDetection';
 
@@ -42,16 +41,14 @@ function savingsPercent(monthly: number, yearly: number) {
   return Math.round((1 - yearly / (monthly * 12)) * 100);
 }
 
-const NOVAWEALTH_PRICING_URL = 'https://novawealth.app/pricing';
+const NOVAWEALTH_PRICING_URL = 'https://novawealthhq.com/pricing';
 
 export default function Pricing() {
   const { user, session } = useAuth();
   const { isPro, loading: subLoading, subscriptionEnd, refreshAccess, isGuest } = useSubscription();
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [referral, setReferral] = useState<ReferralValidation | null>(null);
   const [isYearly, setIsYearly] = useState(false);
 
   const success = searchParams.get('success') === 'true';
@@ -78,32 +75,6 @@ export default function Pricing() {
       }).catch(console.error);
     } catch { /* ignore */ }
   }, [success]);
-
-  const handleCheckout = async () => {
-    if (!user) { navigate('/auth'); return; }
-    setCheckoutLoading(true);
-    try {
-      if (referral) {
-        sessionStorage.setItem('mp_referral', JSON.stringify({
-          code: referral.code,
-          referrer_id: referral.referrer_id,
-          referral_code_id: referral.referral_code_id,
-          email: user.email,
-        }));
-      }
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-        body: referral
-          ? { referral_code: referral.code, referrer_id: referral.referrer_id, referral_code_id: referral.referral_code_id }
-          : {},
-      });
-      if (error) throw error;
-      if (data?.url) window.open(data.url, '_blank');
-    } catch (err) {
-      toast.error('Failed to start checkout. Please try again.');
-      console.error(err);
-    } finally { setCheckoutLoading(false); }
-  };
 
   const handleManage = async () => {
     setPortalLoading(true);
@@ -212,7 +183,10 @@ export default function Pricing() {
           </Card>
 
           {/* ── Pro ── */}
-          <Card className={`relative ${isPro ? 'border-accent/50 ring-1 ring-accent/20' : 'border-accent/40 ring-1 ring-accent/15'}`}>
+          <Card
+            className={`relative cursor-pointer transition-transform hover:scale-[1.02] ${isPro ? 'border-accent/50 ring-1 ring-accent/20' : 'border-accent/40 ring-1 ring-accent/15'}`}
+            onClick={() => !isPro && navigate(`/checkout?plan=${isYearly ? 'yearly' : 'monthly'}`)}
+          >
             <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground text-[10px] uppercase tracking-wider">
               {isPro && !subLoading ? 'Your Plan' : 'Popular'}
             </Badge>
@@ -247,7 +221,7 @@ export default function Pricing() {
               ))}
               {isPro ? (
                 <div className="space-y-2 mt-4">
-                  <Button variant="outline" className="w-full" onClick={handleManage} disabled={portalLoading}>
+                  <Button variant="outline" className="w-full" onClick={(e) => { e.stopPropagation(); handleManage(); }} disabled={portalLoading}>
                     {portalLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ExternalLink className="h-4 w-4 mr-2" />}
                     Manage Subscription
                   </Button>
@@ -258,21 +232,19 @@ export default function Pricing() {
                   )}
                 </div>
               ) : (
-                <>
-                  <Button className="w-full mt-4 bg-accent hover:bg-accent/90 text-accent-foreground" onClick={handleCheckout} disabled={checkoutLoading}>
-                    {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
-                    {referral ? 'Start Trial — 20% Off After' : 'Start Free Trial'}
-                  </Button>
-                  {user && (
-                    <ReferralCodeInput userId={user?.id} onValidated={setReferral} />
-                  )}
-                </>
+                <Button className="w-full mt-4 bg-accent hover:bg-accent/90 text-accent-foreground">
+                  <Crown className="h-4 w-4 mr-2" />
+                  Start Free Trial
+                </Button>
               )}
             </CardContent>
           </Card>
 
           {/* ── Bundle ── */}
-          <Card className="relative border-warning/40 ring-1 ring-warning/15">
+          <Card
+            className="relative border-warning/40 ring-1 ring-warning/15 cursor-pointer transition-transform hover:scale-[1.02]"
+            onClick={() => window.open(NOVAWEALTH_PRICING_URL, '_blank')}
+          >
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Sparkles className="h-5 w-5 text-warning" />
@@ -297,10 +269,7 @@ export default function Pricing() {
                   <span className="text-foreground">{item}</span>
                 </div>
               ))}
-              <Button
-                className="w-full mt-4 bg-warning hover:bg-warning/90 text-black font-semibold"
-                onClick={() => window.open(NOVAWEALTH_PRICING_URL, '_blank')}
-              >
+              <Button className="w-full mt-4 bg-warning hover:bg-warning/90 text-black font-semibold">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Get the Bundle
               </Button>
