@@ -50,8 +50,9 @@ export function AppAccessProvider({ children }: { children: ReactNode }) {
       let novawealth = row?.novawealth_subscriber ?? false;
       let standalone = row?.standalone_subscriber ?? false;
 
-      // 2. If cache is stale, sync with NovaWealth
+      // 2. If cache is stale, sync with NovaWealth + check Stripe
       if (needsSync) {
+        // Sync NovaWealth status
         try {
           const { data, error } = await supabase.functions.invoke('sync-novawealth-access', {
             body: { user_id: user.id, email: user.email },
@@ -63,7 +64,19 @@ export function AppAccessProvider({ children }: { children: ReactNode }) {
           console.warn('NovaWealth sync failed, using cached value:', syncErr);
         }
 
-        // Re-read the row after sync to get latest standalone too
+        // Check Stripe subscription status (also updates user_access)
+        try {
+          const { data: stripeSub, error: stripeErr } = await supabase.functions.invoke('check-subscription', {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+          if (!stripeErr && stripeSub?.subscribed) {
+            standalone = true;
+          }
+        } catch (stripeCheckErr) {
+          console.warn('Stripe check failed, using cached value:', stripeCheckErr);
+        }
+
+        // Re-read the row after sync to get latest values
         const { data: fresh } = await supabase
           .from('user_access')
           .select('*')
