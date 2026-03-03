@@ -1,9 +1,11 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
 const CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour
 const FREE_WATCHLIST_LIMIT = 10;
+const UPGRADE_RETRY_DELAY = 3000; // 3s between retries
+const UPGRADE_MAX_RETRIES = 5;
 
 interface AppAccessContextType {
   hasAccess: boolean;
@@ -113,6 +115,47 @@ export function AppAccessProvider({ children }: { children: ReactNode }) {
   const refreshAccess = useCallback(async () => {
     await checkAccess(true);
   }, [checkAccess]);
+
+  // Handle upgrade_success from Stripe redirect — retry until access is confirmed
+  const upgradeHandled = useRef(false);
+  useEffect(() => {
+    if (upgradeHandled.current || !user || isGuest) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('upgrade_success') !== 'true') return;
+    upgradeHandled.current = true;
+
+    // Clean URL
+    params.delete('upgrade_success');
+    const newUrl = params.toString()
+      ? `${window.location.pathname}?${params}`
+      : window.location.pathname;
+    window.history.replaceState({}, '', newUrl);
+
+    // Retry loop: Stripe may take a moment to provision
+    let retries = 0;
+    const trySync = async () => {
+      await checkAccess(true);
+      // Re-read latest state after sync
+      const { data: row } = await supabase
+        .from('user_access')
+        .select('standalone_subscriber, novawealth_subscriber')
+        .eq('id', user.id)
+        .single();
+      const synced = row?.standalone_subscriber || row?.novawealth_subscriber;
+      if (synced) {
+        setHasAccess(true);
+        const { toast } = await import('sonner');
+        toast.success('🎉 Welcome to Pro! Your subscription is now active.');
+      } else if (retries < UPGRADE_MAX_RETRIES) {
+        retries++;
+        setTimeout(trySync, UPGRADE_RETRY_DELAY);
+      } else {
+        const { toast } = await import('sonner');
+        toast.info('Subscription is being activated. Features will unlock shortly.');
+      }
+    };
+    trySync();
+  }, [user, isGuest, checkAccess]);
 
   // Check NW SSO pro status from auth context
   const nwPro = (() => {
