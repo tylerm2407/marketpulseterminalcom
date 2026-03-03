@@ -36,7 +36,20 @@ export function AppAccessProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // 1. Read local cache from user_access
+      // 1. Check profiles.nova_wealth_linked for lifetime access bypass
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('nova_wealth_linked')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile?.nova_wealth_linked) {
+        setHasAccess(true);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Read local cache from user_access
       const { data: row } = await supabase
         .from('user_access')
         .select('*')
@@ -52,7 +65,7 @@ export function AppAccessProvider({ children }: { children: ReactNode }) {
       let novawealth = row?.novawealth_subscriber ?? false;
       let standalone = row?.standalone_subscriber ?? false;
 
-      // 2. If cache is stale, sync with NovaWealth + check Stripe
+      // 3. If cache is stale, sync with NovaWealth + check Stripe
       if (needsSync) {
         // Sync NovaWealth status
         try {
