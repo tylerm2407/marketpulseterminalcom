@@ -78,14 +78,14 @@ export default function Checkout() {
           body,
         });
         if (error) throw error;
-        if (data?.url) window.location.href = data.url;
+        if (data?.url) window.open(data.url, '_blank');
       } else {
         body.guest_email = effectiveEmail;
         const { data, error } = await supabase.functions.invoke('create-checkout', {
           body,
         });
         if (error) throw error;
-        if (data?.url) window.location.href = data.url;
+        if (data?.url) window.open(data.url, '_blank');
       }
     } catch (err) {
       toast.error('Failed to start checkout. Please try again.');
