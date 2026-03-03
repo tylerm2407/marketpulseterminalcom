@@ -60,11 +60,13 @@ serve(async (req) => {
         referred_user_id: body.referred_user_id ? sanitize(body.referred_user_id as string) : null,
       };
 
+      // Always use x-api-secret for validation — the supabase client auto-injects the
+      // anon key as Authorization, which NovaWealth would reject as an invalid JWT.
       const res = await fetch(`${NOVA_URL}/validate-referral`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(userJwt ? { "Authorization": `Bearer ${userJwt}` } : { "x-api-secret": crossAppSecret }),
+          "x-api-secret": crossAppSecret,
         },
         body: JSON.stringify(payload),
       });
