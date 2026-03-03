@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams, useNavigate } from 'react-router-dom';
 import { useReferralDetection } from '@/hooks/useReferralDetection';
 import {
   Mail, Lock, ArrowRight, Loader2, ExternalLink,
@@ -42,6 +42,7 @@ const highlights = [
 
 export default function Auth() {
   const { user, loading, signIn, signUp, signInAsGuest, nwSession, nwProcessing } = useAuth();
+  const navigate = useNavigate();
   useReferralDetection();
   const [isSignUp, setIsSignUp] = useState(true);
   const [guestLoading, setGuestLoading] = useState(false);
@@ -126,13 +127,13 @@ export default function Auth() {
           <div className="grid grid-cols-3 gap-3 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
 
             {/* Free */}
-            <div className="card-elevated p-3">
+            <div className="card-elevated p-3 flex flex-col">
               <div className="flex items-center gap-1.5 mb-2">
                 <Zap className="h-4 w-4 text-[var(--text-muted)]" />
                 <span className="text-sm font-semibold text-[var(--text-secondary)]">Free</span>
               </div>
               <div className="text-2xl font-bold font-mono text-[var(--text-primary)] mb-3">$0<span className="text-xs font-normal text-[var(--text-muted)]">/mo</span></div>
-              <ul className="space-y-1.5">
+              <ul className="space-y-1.5 flex-1">
                 {features.map(f => (
                   <li key={f.name} className="flex items-start gap-1.5 text-xs">
                     {f.free ? (
@@ -152,7 +153,7 @@ export default function Auth() {
             </div>
 
             {/* Pro */}
-            <div className="card-elevated p-3 relative border-[var(--border-active)] !border-[rgba(79,142,247,0.35)]">
+            <div className="card-elevated p-3 relative border-[var(--border-active)] !border-[rgba(79,142,247,0.35)] flex flex-col">
               <Badge className="absolute -top-2.5 left-3 bg-[var(--accent-primary)] text-white text-[10px] px-2 border-0">
                 Most Popular
               </Badge>
@@ -164,7 +165,7 @@ export default function Auth() {
                 $19.99<span className="text-xs font-normal text-[var(--text-muted)]">/mo</span>
               </div>
               <p className="text-[10px] text-[var(--accent-primary)] mb-3">30-day free trial</p>
-              <ul className="space-y-1.5">
+              <ul className="space-y-1.5 flex-1">
                 {features.map(f => (
                   <li key={f.name} className="flex items-start gap-1.5 text-xs">
                     <Check className="h-3.5 w-3.5 text-[var(--accent-primary)] shrink-0 mt-0.5" />
@@ -177,10 +178,18 @@ export default function Auth() {
                   </li>
                 ))}
               </ul>
+              <Button
+                size="sm"
+                className="w-full mt-3 bg-accent hover:bg-accent/90 text-accent-foreground text-xs font-semibold"
+                onClick={() => navigate('/checkout?plan=monthly')}
+              >
+                <Crown className="h-3.5 w-3.5 mr-1.5" />
+                Start Now
+              </Button>
             </div>
 
             {/* Bundle */}
-            <div className="card-elevated p-3 relative !border-[rgba(234,179,8,0.35)]">
+            <div className="card-elevated p-3 relative !border-[rgba(234,179,8,0.35)] flex flex-col">
               <Badge className="absolute -top-2.5 left-3 bg-warning text-black text-[10px] px-2 border-0">
                 Best Value
               </Badge>
@@ -192,7 +201,7 @@ export default function Auth() {
                 $29.99<span className="text-xs font-normal text-[var(--text-muted)]">/mo</span>
               </div>
               <p className="text-[10px] text-warning mb-3">NovaWealth ecosystem</p>
-              <ul className="space-y-1.5">
+              <ul className="space-y-1.5 flex-1">
                 {bundleExtras.map(item => (
                   <li key={item} className="flex items-start gap-1.5 text-xs">
                     <Check className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />
@@ -200,6 +209,14 @@ export default function Auth() {
                   </li>
                 ))}
               </ul>
+              <Button
+                size="sm"
+                className="w-full mt-3 bg-warning hover:bg-warning/90 text-black text-xs font-semibold"
+                onClick={() => window.open('https://novawealthhq.com/pricing', '_blank')}
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                Start Now
+              </Button>
             </div>
           </div>
 
