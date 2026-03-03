@@ -91,8 +91,10 @@ serve(async (req) => {
         ...(referrerId && { referrer_id: referrerId }),
         ...(referralCodeId && { referral_code_id: referralCodeId }),
       },
-      // After payment, redirect to signup page with email pre-filled
-      success_url: `${origin}/auth?checkout_success=true&paid_email=${encodeURIComponent(userEmail)}`,
+      // Authenticated users go back to app; guests go to signup
+      success_url: userId
+        ? `${origin}/?upgrade_success=true`
+        : `${origin}/auth?checkout_success=true&paid_email=${encodeURIComponent(userEmail)}`,
       cancel_url: `${origin}/pricing`,
     };
 

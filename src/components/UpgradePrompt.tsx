@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Crown, Lock, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UpgradePromptProps {
   feature: string;
@@ -11,6 +12,17 @@ const NOVAWEALTH_SUBSCRIBE_URL = 'https://novawealth.app/pricing';
 
 export function UpgradePrompt({ feature, description }: UpgradePromptProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const handleUpgrade = () => {
+    if (user && !user.is_anonymous) {
+      // Logged-in user: go straight to checkout
+      navigate('/checkout?plan=monthly');
+    } else {
+      // Guest or not logged in: go to pricing/auth
+      navigate('/pricing');
+    }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
@@ -22,9 +34,9 @@ export function UpgradePrompt({ feature, description }: UpgradePromptProps) {
         {description || `Upgrade to unlock ${feature.toLowerCase()} and all premium features.`}
       </p>
       <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
-        <Button onClick={() => navigate('/pricing')} className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground gap-2">
+        <Button onClick={handleUpgrade} className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground gap-2">
           <Crown className="h-4 w-4" />
-          MarketPulse Pro — $19.99/mo
+          Upgrade to Pro — $19.99/mo
         </Button>
         <Button
           variant="outline"
@@ -36,7 +48,7 @@ export function UpgradePrompt({ feature, description }: UpgradePromptProps) {
         </Button>
       </div>
       <p className="text-xs text-muted-foreground mt-3">
-        MarketPulse Pro includes a 30-day free trial. The NovaWealth Bundle unlocks all apps.
+        Includes a 30-day free trial. Cancel anytime.
       </p>
     </div>
   );
