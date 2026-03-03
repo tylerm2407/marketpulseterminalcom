@@ -21,6 +21,7 @@ import Portfolio from "./pages/Portfolio";
 import PriceAlerts from "./pages/PriceAlerts";
 import Analytics from "./pages/Analytics";
 import Pricing from "./pages/Pricing";
+import Checkout from "./pages/Checkout";
 import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
@@ -45,6 +46,7 @@ const App = () => (
               <Routes>
                 {/* Public routes — no chrome */}
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/checkout" element={<Checkout />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 {/* Protected routes — wrapped with RequireAuth + app chrome */}
                 <Route

@@ -22,17 +22,33 @@ serve(async (req) => {
   );
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-    const token = authHeader.replace("Bearer ", "");
-    const { data, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = data.user;
-    if (!user) throw new Error("User not authenticated");
-    if (user.is_anonymous) throw new Error("Guest users cannot subscribe. Please create an account first.");
-    if (!user.email) throw new Error("No email associated with this account");
-
     const body = await req.json().catch(() => ({}));
+    const guestEmail = typeof body.guest_email === "string" ? body.guest_email.trim().toLowerCase() : null;
+
+    let userEmail: string;
+    let userId: string | null = null;
+
+    // Try authenticated flow first
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader && !guestEmail) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data, error: userError } = await supabaseClient.auth.getUser(token);
+      if (userError) throw new Error(`Authentication error: ${userError.message}`);
+      const user = data.user;
+      if (!user) throw new Error("User not authenticated");
+      if (user.is_anonymous) throw new Error("Guest users cannot subscribe. Please create an account first.");
+      if (!user.email) throw new Error("No email associated with this account");
+      userEmail = user.email;
+      userId = user.id;
+    } else if (guestEmail) {
+      // Guest checkout — just need an email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(guestEmail)) throw new Error("Invalid email address");
+      userEmail = guestEmail;
+    } else {
+      throw new Error("No authentication or email provided");
+    }
+
     const referralCode = typeof body.referral_code === "string" ? body.referral_code.trim().toUpperCase().substring(0, 50) : null;
     const referrerId = typeof body.referrer_id === "string" ? body.referrer_id.substring(0, 100) : null;
     const referralCodeId = typeof body.referral_code_id === "string" ? body.referral_code_id.substring(0, 100) : null;
@@ -41,7 +57,7 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
     let customerId: string | undefined;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
@@ -51,7 +67,7 @@ serve(async (req) => {
 
     const sessionParams: any = {
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
+      customer_email: customerId ? undefined : userEmail,
       line_items: [
         {
           price: "price_1T1X6BAmUZkn8na4fZGfuj7k",
@@ -62,21 +78,22 @@ serve(async (req) => {
       subscription_data: {
         trial_period_days: 30,
         metadata: {
-          user_id: user.id,
+          ...(userId && { user_id: userId }),
           source_app: SOURCE_APP,
           ...(referralCode && { referral_code: referralCode }),
           ...(referrerId && { referrer_id: referrerId }),
         },
       },
       metadata: {
-        user_id: user.id,
+        ...(userId && { user_id: userId }),
         source_app: SOURCE_APP,
         ...(referralCode && { referral_code: referralCode }),
         ...(referrerId && { referrer_id: referrerId }),
         ...(referralCodeId && { referral_code_id: referralCodeId }),
       },
-      success_url: `${origin}/pricing?success=true`,
-      cancel_url: `${origin}/pricing?canceled=true`,
+      // After payment, redirect to signup page so user creates their account
+      success_url: `${origin}/auth?checkout_success=true`,
+      cancel_url: `${origin}/pricing`,
     };
 
     // Apply referral discount coupon if valid referral
