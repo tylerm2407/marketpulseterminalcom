@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import { useReferralDetection } from '@/hooks/useReferralDetection';
 import {
   Mail, Lock, ArrowRight, Loader2, ExternalLink,
   Check, X, Crown, Zap, TrendingUp, Bell, Shield, UserRound, Eye, EyeOff, Sparkles
@@ -41,6 +42,7 @@ const highlights = [
 
 export default function Auth() {
   const { user, loading, signIn, signUp, signInAsGuest, nwSession, nwProcessing } = useAuth();
+  useReferralDetection();
   const [isSignUp, setIsSignUp] = useState(true);
   const [guestLoading, setGuestLoading] = useState(false);
   const [email, setEmail] = useState('');

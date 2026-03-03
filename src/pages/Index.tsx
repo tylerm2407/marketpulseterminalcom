@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useReferralDetection } from '@/hooks/useReferralDetection';
 import { BarChart3, ArrowUp, ArrowDown, Shield, FileText, Eye, Star, Clock, CalendarDays, Activity } from 'lucide-react';
 import { SearchBar } from '@/components/search/SearchBar';
 import { Footer } from '@/components/layout/Footer';
@@ -20,6 +21,7 @@ import { AmbientOrbs } from '@/components/effects/AmbientOrbs';
 const EXPLORE_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'TSLA'];
 
 const Index = () => {
+  useReferralDetection();
   const { data: liveQuotes } = useWatchlistQuotes(EXPLORE_TICKERS);
   const { data: sparklines } = useSparklines(EXPLORE_TICKERS);
   const { data: marketOverview, isLoading: marketLoading } = useMarketOverview();

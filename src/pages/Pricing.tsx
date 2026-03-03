@@ -10,6 +10,8 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ReferralCodeInput, type ReferralValidation } from '@/components/ReferralCodeInput';
+import { ReferralDashboard } from '@/components/ReferralDashboard';
+import { clearStoredReferralCode } from '@/hooks/useReferralDetection';
 
 const features = [
   { name: 'Stock Dossiers & Charts', free: true, pro: true, bundle: true },
@@ -44,7 +46,7 @@ const NOVAWEALTH_PRICING_URL = 'https://novawealth.app/pricing';
 
 export default function Pricing() {
   const { user, session } = useAuth();
-  const { isPro, loading: subLoading, subscriptionEnd, refreshAccess } = useSubscription();
+  const { isPro, loading: subLoading, subscriptionEnd, refreshAccess, isGuest } = useSubscription();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [searchParams] = useSearchParams();
@@ -65,12 +67,15 @@ export default function Pricing() {
         body: {
           action: 'track',
           referral_code: ref.code,
-          referrer_id: ref.referrer_id,
-          referred_email: ref.email,
-          app_name: 'MarketPulseTerminal',
+          referral_code_id: ref.referral_code_id,
+          referrer_user_id: ref.referrer_id,
+          referred_user_id: user?.id,
+          event: 'subscription_created',
         },
-      }).then(() => sessionStorage.removeItem('mp_referral'))
-        .catch(console.error);
+      }).then(() => {
+        sessionStorage.removeItem('mp_referral');
+        clearStoredReferralCode();
+      }).catch(console.error);
     } catch { /* ignore */ }
   }, [success]);
 
@@ -80,12 +85,17 @@ export default function Pricing() {
     try {
       if (referral) {
         sessionStorage.setItem('mp_referral', JSON.stringify({
-          code: referral.code, referrer_id: referral.referrer_id, email: user.email,
+          code: referral.code,
+          referrer_id: referral.referrer_id,
+          referral_code_id: referral.referral_code_id,
+          email: user.email,
         }));
       }
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         headers: { Authorization: `Bearer ${session?.access_token}` },
-        body: referral ? { referral_code: referral.code, referrer_id: referral.referrer_id } : {},
+        body: referral
+          ? { referral_code: referral.code, referrer_id: referral.referrer_id, referral_code_id: referral.referral_code_id }
+          : {},
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, '_blank');
@@ -254,7 +264,7 @@ export default function Pricing() {
                     {referral ? 'Start Trial — 20% Off After' : 'Start Free Trial'}
                   </Button>
                   {user && (
-                    <ReferralCodeInput userEmail={user.email || ''} onValidated={setReferral} />
+                    <ReferralCodeInput userId={user?.id} onValidated={setReferral} />
                   )}
                 </>
               )}
@@ -317,6 +327,13 @@ export default function Pricing() {
             ? `After the trial, $${YEARLY_PRO.toFixed(2)}/year billed annually.`
             : `After the trial, $${MONTHLY_PRO.toFixed(2)}/month billed monthly.`}
         </p>
+
+        {/* Referral Dashboard */}
+        {user && !isGuest && (
+          <div className="mt-10">
+            <ReferralDashboard />
+          </div>
+        )}
       </section>
       <Footer />
     </div>

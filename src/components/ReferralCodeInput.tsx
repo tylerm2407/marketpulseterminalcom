@@ -1,23 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle, AlertCircle, Loader2, Tag } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
+import { getStoredReferralCode } from '@/hooks/useReferralDetection';
+import { isValidReferralCodeFormat, REFERRAL_CONFIG } from '@/lib/referralConfig';
 
 export interface ReferralValidation {
   valid: boolean;
   referrer_id: string;
+  referral_code_id: string;
   code: string;
   discount_percent: number;
 }
 
 interface ReferralCodeInputProps {
-  userEmail: string;
+  userId?: string;
   onValidated: (result: ReferralValidation | null) => void;
 }
 
-export function ReferralCodeInput({ userEmail, onValidated }: ReferralCodeInputProps) {
+export function ReferralCodeInput({ userId, onValidated }: ReferralCodeInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,9 +28,25 @@ export function ReferralCodeInput({ userEmail, onValidated }: ReferralCodeInputP
   const [errorMsg, setErrorMsg] = useState('');
   const [discountPercent, setDiscountPercent] = useState(0);
 
+  // Auto-fill from localStorage if a ?ref= was detected earlier
+  useEffect(() => {
+    const stored = getStoredReferralCode();
+    if (stored) {
+      setCode(stored);
+      setIsOpen(true);
+    }
+  }, []);
+
   const handleValidate = async () => {
     const trimmed = code.trim().toUpperCase();
     if (!trimmed) return;
+
+    if (!isValidReferralCodeFormat(trimmed)) {
+      setStatus('invalid');
+      setErrorMsg('Invalid format. Referral codes look like NW-XXXXXXXX.');
+      onValidated(null);
+      return;
+    }
 
     setLoading(true);
     setStatus('idle');
@@ -35,15 +54,25 @@ export function ReferralCodeInput({ userEmail, onValidated }: ReferralCodeInputP
 
     try {
       const { data, error } = await supabase.functions.invoke('referral-proxy', {
-        body: { action: 'validate', referral_code: trimmed, user_email: userEmail },
+        body: {
+          action: 'validate',
+          referral_code: trimmed,
+          referred_user_id: userId || null,
+        },
       });
 
       if (error) throw error;
 
       if (data?.valid) {
         setStatus('valid');
-        setDiscountPercent(data.discount_percent || 20);
-        onValidated({ valid: true, referrer_id: data.referrer_id, code: data.code, discount_percent: data.discount_percent });
+        setDiscountPercent(data.discount_percent || REFERRAL_CONFIG.DISCOUNT_PERCENT);
+        onValidated({
+          valid: true,
+          referrer_id: data.referrer_id,
+          referral_code_id: data.referral_code_id,
+          code: data.code,
+          discount_percent: data.discount_percent,
+        });
       } else {
         setStatus('invalid');
         setErrorMsg(data?.error || 'Invalid referral code');
@@ -95,7 +124,7 @@ export function ReferralCodeInput({ userEmail, onValidated }: ReferralCodeInputP
           {status === 'valid' && (
             <div className="flex items-center gap-1.5 text-xs text-gain">
               <CheckCircle className="h-3.5 w-3.5" />
-              {discountPercent}% off your first 3 paid months!
+              {discountPercent}% off your first {REFERRAL_CONFIG.DISCOUNT_DURATION_MONTHS} paid months!
             </div>
           )}
           {status === 'invalid' && (
