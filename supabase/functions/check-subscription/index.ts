@@ -82,6 +82,22 @@ serve(async (req) => {
       logStep("No active subscription found");
     }
 
+    // Sync standalone_subscriber flag in user_access table
+    const { error: upsertError } = await supabaseClient
+      .from('user_access')
+      .upsert({
+        id: user.id,
+        email: user.email!,
+        standalone_subscriber: hasActiveSub,
+        last_novawealth_check: new Date().toISOString(),
+      }, { onConflict: 'id' });
+
+    if (upsertError) {
+      logStep("Failed to upsert user_access", { error: upsertError.message });
+    } else {
+      logStep("user_access synced", { standalone_subscriber: hasActiveSub });
+    }
+
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
       product_id: productId,

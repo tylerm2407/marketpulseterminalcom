@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate, useSearchParams, useNavigate } from 'react-router-dom';
 import { useReferralDetection } from '@/hooks/useReferralDetection';
 import {
@@ -53,7 +53,16 @@ export default function Auth() {
   const [submitting, setSubmitting] = useState(false);
   const [searchParams] = useSearchParams();
   const checkoutSuccess = searchParams.get('checkout_success') === 'true';
+  const paidEmail = searchParams.get('paid_email') || '';
   const [referralValidation, setReferralValidation] = useState<ReferralValidation | null>(null);
+
+  // Pre-fill email from Stripe checkout redirect
+  useEffect(() => {
+    if (checkoutSuccess && paidEmail && !email) {
+      setEmail(paidEmail);
+      setIsSignUp(true);
+    }
+  }, [checkoutSuccess, paidEmail]);
 
   if (loading || nwProcessing) return null;
   // Redirect if user has Supabase session OR NW session
@@ -68,7 +77,11 @@ export default function Auth() {
         if (error) {
           toast.error(error.message);
         } else {
-          toast.success('Check your email to confirm your account!');
+          if (checkoutSuccess) {
+            toast.success('Account created! Your Pro subscription is being activated. Check your email to verify.');
+          } else {
+            toast.success('Check your email to confirm your account!');
+          }
           setIsSignUp(false);
         }
       } else {
@@ -94,8 +107,8 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row" style={{ background: 'var(--bg-base)' }}>
 
-      {/* ── Left panel: Branding + plan cards ── */}
-      <div className="lg:w-[55%] relative overflow-hidden flex flex-col justify-center px-8 py-12 lg:py-16 lg:px-14" style={{ background: 'var(--bg-surface)' }}>
+      {/* ── Left panel: Branding + plan cards (hidden on checkout success) ── */}
+      <div className={`lg:w-[55%] relative overflow-hidden flex flex-col justify-center px-8 py-12 lg:py-16 lg:px-14 ${checkoutSuccess ? 'hidden lg:flex' : ''}`} style={{ background: 'var(--bg-surface)' }}>
         <AmbientOrbs />
         <div className="dot-pattern absolute inset-0 opacity-[0.03]" />
         <div className="relative z-10">
@@ -327,45 +340,49 @@ export default function Auth() {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  {isSignUp ? 'Get Started Free' : 'Sign In'}
+                  {checkoutSuccess ? 'Create Pro Account' : isSignUp ? 'Get Started Free' : 'Sign In'}
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="relative my-5">
-            <div className="section-divider" />
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 text-xs text-[var(--text-muted)]" style={{ background: 'var(--bg-base)' }}>
-              or
-            </span>
-          </div>
+          {!checkoutSuccess && (
+            <>
+              <div className="relative my-5">
+                <div className="section-divider" />
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 text-xs text-[var(--text-muted)]" style={{ background: 'var(--bg-base)' }}>
+                  or
+                </span>
+              </div>
 
-          <button
-            className="btn-ghost w-full flex items-center justify-center gap-2 !py-2.5"
-            onClick={() => {
-              window.location.href = 'https://novawealthhqcom.lovable.app/login?redirect_app=marketpulse';
-            }}
-          >
-            <ExternalLink className="h-4 w-4" />
-            Continue with Nova Wealth
-          </button>
+              <button
+                className="btn-ghost w-full flex items-center justify-center gap-2 !py-2.5"
+                onClick={() => {
+                  window.location.href = 'https://novawealthhqcom.lovable.app/login?redirect_app=marketpulse';
+                }}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Continue with Nova Wealth
+              </button>
 
-          <button
-            className="w-full flex items-center justify-center gap-2 mt-2 py-2.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-sm rounded-lg"
-            onClick={handleGuestSignIn}
-            disabled={guestLoading}
-          >
-            {guestLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <UserRound className="h-4 w-4" />
-            )}
-            Continue as Guest
-          </button>
-          <p className="text-center text-[11px] text-[var(--text-muted)] -mt-1">
-            No account needed · Free features only · Data not saved
-          </p>
+              <button
+                className="w-full flex items-center justify-center gap-2 mt-2 py-2.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-sm rounded-lg"
+                onClick={handleGuestSignIn}
+                disabled={guestLoading}
+              >
+                {guestLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <UserRound className="h-4 w-4" />
+                )}
+                Continue as Guest
+              </button>
+              <p className="text-center text-[11px] text-[var(--text-muted)] -mt-1">
+                No account needed · Free features only · Data not saved
+              </p>
+            </>
+          )}
 
           <p className="mt-6 text-center text-sm text-[var(--text-secondary)]">
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}

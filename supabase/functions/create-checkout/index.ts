@@ -91,8 +91,8 @@ serve(async (req) => {
         ...(referrerId && { referrer_id: referrerId }),
         ...(referralCodeId && { referral_code_id: referralCodeId }),
       },
-      // After payment, redirect to signup page so user creates their account
-      success_url: `${origin}/auth?checkout_success=true`,
+      // After payment, redirect to signup page with email pre-filled
+      success_url: `${origin}/auth?checkout_success=true&paid_email=${encodeURIComponent(userEmail)}`,
       cancel_url: `${origin}/pricing`,
     };
 
