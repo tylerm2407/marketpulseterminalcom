@@ -7,6 +7,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SOURCE_APP = "marketpulse_terminal";
+const REFERRAL_COUPON_ID = "jPSNu7Zh";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -30,8 +33,9 @@ serve(async (req) => {
     if (!user.email) throw new Error("No email associated with this account");
 
     const body = await req.json().catch(() => ({}));
-    const referralCode = body.referral_code || null;
-    const referrerId = body.referrer_id || null;
+    const referralCode = typeof body.referral_code === "string" ? body.referral_code.trim().toUpperCase().substring(0, 50) : null;
+    const referrerId = typeof body.referrer_id === "string" ? body.referrer_id.substring(0, 100) : null;
+    const referralCodeId = typeof body.referral_code_id === "string" ? body.referral_code_id.substring(0, 100) : null;
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -57,18 +61,27 @@ serve(async (req) => {
       mode: "subscription",
       subscription_data: {
         trial_period_days: 30,
+        metadata: {
+          user_id: user.id,
+          source_app: SOURCE_APP,
+          ...(referralCode && { referral_code: referralCode }),
+          ...(referrerId && { referrer_id: referrerId }),
+        },
+      },
+      metadata: {
+        user_id: user.id,
+        source_app: SOURCE_APP,
+        ...(referralCode && { referral_code: referralCode }),
+        ...(referrerId && { referrer_id: referrerId }),
+        ...(referralCodeId && { referral_code_id: referralCodeId }),
       },
       success_url: `${origin}/pricing?success=true`,
       cancel_url: `${origin}/pricing?canceled=true`,
     };
 
-    // Strategy 3: Trial + Post-Trial Discount — keep trial, add coupon
+    // Apply referral discount coupon if valid referral
     if (referralCode && referrerId) {
-      sessionParams.discounts = [{ coupon: "jPSNu7Zh" }];
-      sessionParams.metadata = {
-        referrer_id: referrerId,
-        referral_code: referralCode,
-      };
+      sessionParams.discounts = [{ coupon: REFERRAL_COUPON_ID }];
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
