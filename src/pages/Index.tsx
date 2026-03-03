@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useReferralDetection } from '@/hooks/useReferralDetection';
 import { BarChart3, ArrowUp, ArrowDown, Shield, FileText, Eye, Star, Clock, CalendarDays, Activity } from 'lucide-react';
 import { SearchBar } from '@/components/search/SearchBar';
@@ -17,17 +18,31 @@ import { useWatchlistStore } from '@/stores/watchlistStore';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { TiltCard } from '@/components/effects/TiltCard';
 import { AmbientOrbs } from '@/components/effects/AmbientOrbs';
+import { useAppAccess } from '@/hooks/useAppAccess';
+import { toast } from 'sonner';
 
 const EXPLORE_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'TSLA'];
 
 const Index = () => {
   useReferralDetection();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { refreshAccess } = useAppAccess();
   const { data: liveQuotes } = useWatchlistQuotes(EXPLORE_TICKERS);
   const { data: sparklines } = useSparklines(EXPLORE_TICKERS);
   const { data: marketOverview, isLoading: marketLoading } = useMarketOverview();
   const { addTicker, removeTicker, isWatching } = useWatchlistStore();
   const { items: recentlyViewed } = useRecentlyViewed();
   const quoteMap = new Map((liveQuotes || []).map(q => [q.ticker, q]));
+
+  // Handle return from Stripe after successful upgrade
+  useEffect(() => {
+    if (searchParams.get('upgrade_success') === 'true') {
+      searchParams.delete('upgrade_success');
+      setSearchParams(searchParams, { replace: true });
+      toast.success('🎉 Welcome to Pro! Your subscription is now active.');
+      refreshAccess();
+    }
+  }, []);
   const sparkMap = new Map((sparklines || []).map(s => [s.symbol, s.prices]));
   const trendingStocks = stocksList.slice(0, 6);
   const isLoadingCards = !liveQuotes;
