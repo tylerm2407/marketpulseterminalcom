@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { AmbientOrbs } from '@/components/effects/AmbientOrbs';
+import { ReferralCodeInput, type ReferralValidation } from '@/components/ReferralCodeInput';
 
 const features = [
   { name: 'Stock Dossiers & Charts', free: true, pro: true, bundle: true },
@@ -52,6 +53,7 @@ export default function Auth() {
   const [submitting, setSubmitting] = useState(false);
   const [searchParams] = useSearchParams();
   const checkoutSuccess = searchParams.get('checkout_success') === 'true';
+  const [referralValidation, setReferralValidation] = useState<ReferralValidation | null>(null);
 
   if (loading || nwProcessing) return null;
   // Redirect if user has Supabase session OR NW session
@@ -150,6 +152,18 @@ export default function Auth() {
                   </li>
                 ))}
               </ul>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full mt-3 text-xs font-semibold"
+                onClick={() => {
+                  const el = document.getElementById('email');
+                  if (el) el.focus();
+                }}
+              >
+                <Zap className="h-3.5 w-3.5 mr-1.5" />
+                Start Now
+              </Button>
             </div>
 
             {/* Pro */}
@@ -181,7 +195,15 @@ export default function Auth() {
               <Button
                 size="sm"
                 className="w-full mt-3 bg-accent hover:bg-accent/90 text-accent-foreground text-xs font-semibold"
-                onClick={() => navigate('/checkout?plan=monthly')}
+                onClick={() => {
+                  const params = new URLSearchParams({ plan: 'monthly' });
+                  if (referralValidation) {
+                    params.set('referral_code', referralValidation.code);
+                    params.set('referrer_id', referralValidation.referrer_id);
+                    params.set('referral_code_id', referralValidation.referral_code_id);
+                  }
+                  navigate(`/checkout?${params.toString()}`);
+                }}
               >
                 <Crown className="h-3.5 w-3.5 mr-1.5" />
                 Start Now
@@ -218,6 +240,11 @@ export default function Auth() {
                 Start Now
               </Button>
             </div>
+          </div>
+
+          {/* Referral Code Section */}
+          <div className="mt-6 animate-fade-in-up" style={{ animationDelay: '450ms' }}>
+            <ReferralCodeInput onValidated={setReferralValidation} />
           </div>
 
           <p className="text-xs text-[var(--text-muted)] mt-5 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
