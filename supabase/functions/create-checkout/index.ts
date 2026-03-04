@@ -9,6 +9,8 @@ const corsHeaders = {
 
 const SOURCE_APP = "marketpulse_terminal";
 const REFERRAL_COUPON_ID = "jPSNu7Zh";
+const MONTHLY_PRICE_ID = "price_1T1X6BAmUZkn8na4fZGfuj7k";
+const YEARLY_PRICE_ID = "price_1T75DiAmUZkn8na4mV6RRBUI";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -24,6 +26,8 @@ serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const guestEmail = typeof body.guest_email === "string" ? body.guest_email.trim().toLowerCase() : null;
+    const billingPeriod = typeof body.billing_period === "string" ? body.billing_period : "monthly";
+    const isYearly = billingPeriod === "yearly";
 
     let userEmail: string;
     let userId: string | null = null;
@@ -41,7 +45,6 @@ serve(async (req) => {
       userEmail = user.email;
       userId = user.id;
     } else if (guestEmail) {
-      // Guest checkout — just need an email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(guestEmail)) throw new Error("Invalid email address");
       userEmail = guestEmail;
@@ -64,13 +67,14 @@ serve(async (req) => {
     }
 
     const origin = req.headers.get("origin") || "http://localhost:3000";
+    const priceId = isYearly ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
 
     const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,
       line_items: [
         {
-          price: "price_1T1X6BAmUZkn8na4fZGfuj7k",
+          price: priceId,
           quantity: 1,
         },
       ],
@@ -80,6 +84,7 @@ serve(async (req) => {
         metadata: {
           ...(userId && { user_id: userId }),
           source_app: SOURCE_APP,
+          billing_period: billingPeriod,
           ...(referralCode && { referral_code: referralCode }),
           ...(referrerId && { referrer_id: referrerId }),
         },
@@ -87,19 +92,19 @@ serve(async (req) => {
       metadata: {
         ...(userId && { user_id: userId }),
         source_app: SOURCE_APP,
+        billing_period: billingPeriod,
         ...(referralCode && { referral_code: referralCode }),
         ...(referrerId && { referrer_id: referrerId }),
         ...(referralCodeId && { referral_code_id: referralCodeId }),
       },
-      // Authenticated users go back to app; guests go to signup
       success_url: userId
         ? `${origin}/?upgrade_success=true`
         : `${origin}/auth?checkout_success=true&paid_email=${encodeURIComponent(userEmail)}`,
       cancel_url: `${origin}/pricing`,
     };
 
-    // Apply referral discount coupon if valid referral
-    if (referralCode && referrerId) {
+    // Apply referral discount coupon ONLY for monthly plans
+    if (!isYearly && referralCode && referrerId) {
       sessionParams.discounts = [{ coupon: REFERRAL_COUPON_ID }];
     }
 

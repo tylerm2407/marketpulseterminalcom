@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, X, Crown, Zap, Loader2, ExternalLink, Sparkles } from 'lucide-react';
+import { Check, X, Crown, Zap, Loader2, ExternalLink, Sparkles, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ReferralDashboard } from '@/components/ReferralDashboard';
-import { clearStoredReferralCode } from '@/hooks/useReferralDetection';
+import { clearStoredReferralCode, getStoredReferralCode } from '@/hooks/useReferralDetection';
 
 const features = [
   { name: 'Stock Dossiers & Charts', free: true, pro: true, bundle: true },
@@ -33,9 +33,12 @@ const bundleExtras = [
 ];
 
 const MONTHLY_PRO = 19.99;
-const YEARLY_PRO = 149.99;
+const YEARLY_PRO = 119.88;
 const MONTHLY_BUNDLE = 29.99;
-const YEARLY_BUNDLE = 249.99;
+const YEARLY_BUNDLE = 179.88;
+
+const REFERRAL_DISCOUNT_PERCENT = 20;
+const REFERRAL_DISCOUNT_MONTHS = 3;
 
 function savingsPercent(monthly: number, yearly: number) {
   return Math.round((1 - yearly / (monthly * 12)) * 100);
@@ -51,6 +54,7 @@ export default function Pricing() {
   const navigate = useNavigate();
   const [isYearly, setIsYearly] = useState(false);
 
+  const hasReferralCode = !!getStoredReferralCode();
   const success = searchParams.get('success') === 'true';
 
   useEffect(() => {
@@ -95,6 +99,10 @@ export default function Pricing() {
   const period = isYearly ? '/yr' : '/mo';
   const proSavings = savingsPercent(MONTHLY_PRO, YEARLY_PRO);
   const bundleSavings = savingsPercent(MONTHLY_BUNDLE, YEARLY_BUNDLE);
+
+  // Referral discount display for monthly only
+  const showReferralOnMonthly = hasReferralCode && !isYearly;
+  const discountedMonthly = MONTHLY_PRO * (1 - REFERRAL_DISCOUNT_PERCENT / 100);
 
   return (
     <div className="min-h-screen bg-background pb-16 sm:pb-0">
@@ -196,16 +204,38 @@ export default function Pricing() {
                 Pro
               </CardTitle>
               <div className="mt-2">
-                <span className="text-3xl font-bold font-mono text-foreground">
-                  ${proPrice.toFixed(2)}
-                </span>
-                <span className="text-sm text-muted-foreground">{period}</span>
+                {showReferralOnMonthly ? (
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-bold font-mono text-foreground">
+                        ${discountedMonthly.toFixed(2)}
+                      </span>
+                      <span className="text-lg font-mono text-muted-foreground line-through">
+                        ${MONTHLY_PRO.toFixed(2)}
+                      </span>
+                      <span className="text-sm text-muted-foreground">/mo</span>
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <Tag className="h-3.5 w-3.5 text-gain" />
+                      <Badge className="bg-gain/10 text-gain border-gain/30 text-[10px] font-semibold">
+                        {REFERRAL_DISCOUNT_PERCENT}% off for {REFERRAL_DISCOUNT_MONTHS} months — Referral applied!
+                      </Badge>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <span className="text-3xl font-bold font-mono text-foreground">
+                      ${proPrice.toFixed(2)}
+                    </span>
+                    <span className="text-sm text-muted-foreground">{period}</span>
+                  </>
+                )}
               </div>
               {isYearly ? (
-                <p className="text-xs text-accent mt-1">Save {proSavings}% vs monthly</p>
-              ) : (
+                <p className="text-xs text-accent mt-1">Save {proSavings}% vs monthly — ${(MONTHLY_PRO * 12 - YEARLY_PRO).toFixed(2)} saved/yr</p>
+              ) : !showReferralOnMonthly ? (
                 <p className="text-xs text-accent mt-1">30-day free trial included</p>
-              )}
+              ) : null}
             </CardHeader>
             <CardContent className="space-y-2.5">
               {features.map(f => (
@@ -276,6 +306,16 @@ export default function Pricing() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Referral note for yearly */}
+        {hasReferralCode && isYearly && (
+          <div className="bg-muted/50 border border-border rounded-lg p-3 mb-6 text-center">
+            <p className="text-xs text-muted-foreground">
+              <Tag className="h-3 w-3 inline mr-1" />
+              Referral discounts apply to monthly plans only. The yearly plan already includes 50% savings.
+            </p>
+          </div>
+        )}
 
         {/* NovaWealth note */}
         <div className="bg-warning/5 border border-warning/20 rounded-lg p-4 mb-6 text-center">
