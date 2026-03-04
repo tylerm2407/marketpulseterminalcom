@@ -81,8 +81,12 @@ export function AppAccessProvider({ children }: { children: ReactNode }) {
 
         // Check Stripe subscription status (also updates user_access)
         try {
+          // Always get a fresh session to avoid expired token errors
+          const { data: freshSession } = await supabase.auth.getSession();
+          const freshToken = freshSession?.session?.access_token;
+          if (!freshToken) throw new Error('No active session');
           const { data: stripeSub, error: stripeErr } = await supabase.functions.invoke('check-subscription', {
-            headers: { Authorization: `Bearer ${session.access_token}` },
+            headers: { Authorization: `Bearer ${freshToken}` },
           });
           if (!stripeErr && stripeSub?.subscribed) {
             standalone = true;
