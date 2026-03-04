@@ -14,7 +14,9 @@ import { useReferralDetection } from '@/hooks/useReferralDetection';
 import logoImg from '@/assets/logo.png';
 
 const MONTHLY_PRO = 19.99;
-const YEARLY_PRO = 149.99;
+const YEARLY_PRO = 119.88;
+const REFERRAL_DISCOUNT_PERCENT = 20;
+const REFERRAL_DISCOUNT_MONTHS = 3;
 
 const proFeatures = [
   'Unlimited Watchlists',
@@ -34,7 +36,7 @@ export default function Checkout() {
 
   const plan = searchParams.get('plan') || 'monthly';
   const isYearly = plan === 'yearly';
-  const price = isYearly ? YEARLY_PRO : MONTHLY_PRO;
+  const basePrice = isYearly ? YEARLY_PRO : MONTHLY_PRO;
   const period = isYearly ? '/yr' : '/mo';
 
   const [email, setEmail] = useState('');
@@ -42,6 +44,13 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
 
   const effectiveEmail = user?.email || email;
+
+  // Referral only applies to monthly
+  const showReferral = !isYearly;
+  const hasValidReferral = showReferral && referral;
+  const discountedPrice = hasValidReferral
+    ? MONTHLY_PRO * (1 - REFERRAL_DISCOUNT_PERCENT / 100)
+    : basePrice;
 
   const handleProceed = async () => {
     if (!effectiveEmail) {
@@ -62,15 +71,14 @@ export default function Checkout() {
       }
 
       const body: Record<string, string> = {
-        ...(referral && {
+        billing_period: isYearly ? 'yearly' : 'monthly',
+        ...(referral && !isYearly && {
           referral_code: referral.code,
           referrer_id: referral.referrer_id,
           referral_code_id: referral.referral_code_id,
         }),
-        ...(isYearly && { billing_period: 'yearly' }),
       };
 
-      // If user is authenticated, send auth header; otherwise send email for guest checkout
       if (session?.access_token) {
         body.guest_email = undefined as any;
         const { data, error } = await supabase.functions.invoke('create-checkout', {
@@ -129,13 +137,29 @@ export default function Checkout() {
             </div>
 
             <div className="mb-4">
-              <span className="text-3xl font-bold font-mono text-foreground">${price.toFixed(2)}</span>
-              <span className="text-sm text-muted-foreground">{period}</span>
-              {referral && (
-                <div className="mt-1">
-                  <Badge className="bg-gain/10 text-gain border-gain/30 text-xs">
-                    {referral.discount_percent}% off first 3 months applied!
-                  </Badge>
+              {hasValidReferral ? (
+                <div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold font-mono text-foreground">${discountedPrice.toFixed(2)}</span>
+                    <span className="text-lg font-mono text-muted-foreground line-through">${MONTHLY_PRO.toFixed(2)}</span>
+                    <span className="text-sm text-muted-foreground">/mo</span>
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <Tag className="h-3.5 w-3.5 text-gain" />
+                    <Badge className="bg-gain/10 text-gain border-gain/30 text-xs">
+                      {REFERRAL_DISCOUNT_PERCENT}% off first {REFERRAL_DISCOUNT_MONTHS} months applied!
+                    </Badge>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <span className="text-3xl font-bold font-mono text-foreground">${basePrice.toFixed(2)}</span>
+                  <span className="text-sm text-muted-foreground">{period}</span>
+                  {isYearly && (
+                    <p className="text-xs text-accent mt-1">
+                      Save 50% — that's just ${(YEARLY_PRO / 12).toFixed(2)}/mo
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -180,10 +204,17 @@ export default function Checkout() {
           </div>
         )}
 
-        {/* Referral code input */}
-        <div className="mb-6">
-          <ReferralCodeInput userId={user?.id} onValidated={setReferral} />
-        </div>
+        {/* Referral code input — monthly only */}
+        {showReferral ? (
+          <div className="mb-6">
+            <ReferralCodeInput userId={user?.id} onValidated={setReferral} />
+          </div>
+        ) : (
+          <div className="mb-6 p-3 rounded-lg bg-muted/30 text-xs text-muted-foreground text-center">
+            <Tag className="h-3 w-3 inline mr-1" />
+            Referral codes apply to monthly plans only. Your yearly plan already saves 50%.
+          </div>
+        )}
 
         {/* Proceed button */}
         <Button
