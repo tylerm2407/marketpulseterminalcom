@@ -1,11 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const RATE_LIMIT = { functionName: "check-subscription", maxRequests: 10, windowSeconds: 60 };
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -24,6 +27,10 @@ serve(async (req) => {
   );
 
   try {
+    // Rate limit
+    const rl = await checkRateLimit(req, RATE_LIMIT);
+    if (!rl.allowed) return rateLimitResponse(corsHeaders, rl.retryAfterSeconds!);
+
     logStep("Function started");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
@@ -53,14 +60,12 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
-    // Check active subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
       limit: 1,
     });
 
-    // Also check trialing subscriptions (free trial)
     const trialSubs = await stripe.subscriptions.list({
       customer: customerId,
       status: "trialing",
@@ -75,7 +80,6 @@ serve(async (req) => {
 
     if (hasActiveSub) {
       const subscription = allSubs[0];
-      // Safely parse the subscription end date
       try {
         const endTs = subscription.current_period_end;
         if (endTs && typeof endTs === 'number') {
@@ -94,7 +98,6 @@ serve(async (req) => {
       logStep("No active subscription found");
     }
 
-    // Sync standalone_subscriber flag in user_access table
     const { error: upsertError } = await supabaseClient
       .from('user_access')
       .upsert({

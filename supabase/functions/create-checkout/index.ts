@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
+import {
+  safeParseBody, isValidEmail, sanitize, checkUnexpectedFields, validationError,
+} from "../_shared/inputValidator.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,11 +15,13 @@ const SOURCE_APP = "marketpulse_terminal";
 const REFERRAL_COUPON_ID = "jPSNu7Zh";
 const MONTHLY_PRICE_ID = "price_1T1X6BAmUZkn8na4fZGfuj7k";
 const YEARLY_PRICE_ID = "price_1T75DiAmUZkn8na4mV6RRBUI";
+const RATE_LIMIT = { functionName: "create-checkout", maxRequests: 10, windowSeconds: 60 };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  if (req.method !== "POST") return validationError(corsHeaders, "Method not allowed");
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -24,9 +30,22 @@ serve(async (req) => {
   );
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const guestEmail = typeof body.guest_email === "string" ? body.guest_email.trim().toLowerCase() : null;
-    const billingPeriod = typeof body.billing_period === "string" ? body.billing_period : "monthly";
+    // Rate limit
+    const rl = await checkRateLimit(req, RATE_LIMIT);
+    if (!rl.allowed) return rateLimitResponse(corsHeaders, rl.retryAfterSeconds!);
+
+    // Parse & validate body
+    const parsed = await safeParseBody(req);
+    if (!parsed.ok) return validationError(corsHeaders, parsed.error);
+    const body = parsed.body;
+
+    const unexpected = checkUnexpectedFields(body, [
+      "guest_email", "billing_period", "referral_code", "referrer_id", "referral_code_id",
+    ]);
+    if (unexpected.length > 0) return validationError(corsHeaders, `Unexpected fields: ${unexpected.join(", ")}`);
+
+    const guestEmail = typeof body.guest_email === "string" ? sanitize(body.guest_email as string).toLowerCase() : null;
+    const billingPeriod = body.billing_period === "yearly" ? "yearly" : "monthly";
     const isYearly = billingPeriod === "yearly";
 
     let userEmail: string;
@@ -45,16 +64,15 @@ serve(async (req) => {
       userEmail = user.email;
       userId = user.id;
     } else if (guestEmail) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(guestEmail)) throw new Error("Invalid email address");
+      if (!isValidEmail(guestEmail)) return validationError(corsHeaders, "Invalid email address");
       userEmail = guestEmail;
     } else {
       throw new Error("No authentication or email provided");
     }
 
-    const referralCode = typeof body.referral_code === "string" ? body.referral_code.trim().toUpperCase().substring(0, 50) : null;
-    const referrerId = typeof body.referrer_id === "string" ? body.referrer_id.substring(0, 100) : null;
-    const referralCodeId = typeof body.referral_code_id === "string" ? body.referral_code_id.substring(0, 100) : null;
+    const referralCode = typeof body.referral_code === "string" ? sanitize(body.referral_code as string).toUpperCase().substring(0, 50) : null;
+    const referrerId = typeof body.referrer_id === "string" ? sanitize(body.referrer_id as string).substring(0, 100) : null;
+    const referralCodeId = typeof body.referral_code_id === "string" ? sanitize(body.referral_code_id as string).substring(0, 100) : null;
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -72,12 +90,7 @@ serve(async (req) => {
     const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
       subscription_data: {
         trial_period_days: 30,
