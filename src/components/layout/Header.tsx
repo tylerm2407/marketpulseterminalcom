@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Eye, Home, Newspaper, GitCompareArrows, Sparkles, Search, X, Wallet, Bell, LogIn, LogOut, UserRound, Crown } from 'lucide-react';
+import { Eye, Home, Newspaper, GitCompareArrows, Sparkles, Search, X, Wallet, Bell, LogIn, LogOut, UserRound, Crown, Settings } from 'lucide-react';
 import logoImg from '@/assets/logo.png';
 import { SearchBar } from '@/components/search/SearchBar';
 import { useWatchlistStore } from '@/stores/watchlistStore';
@@ -118,6 +118,10 @@ export function Header() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44 bg-[var(--bg-elevated)] border-[var(--border-subtle)]">
                   <div className="px-2 py-1.5 text-xs text-[var(--text-muted)] truncate">{user.email}</div>
+                  <DropdownMenuItem onClick={() => navigate('/settings')} className="gap-2 cursor-pointer">
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleSignOut} className="gap-2 text-[var(--accent-danger)] focus:text-[var(--accent-danger)] cursor-pointer">
                     <LogOut className="h-4 w-4" />
                     Sign Out
