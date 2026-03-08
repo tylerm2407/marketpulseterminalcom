@@ -50,6 +50,8 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 {/* Protected routes — wrapped with RequireAuth + app chrome */}
                 <Route
                   path="*"

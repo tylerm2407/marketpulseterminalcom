@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import type { ReactNode } from 'react';
 
 // Public routes that don't require authentication
-const PUBLIC_ROUTES = ['/auth', '/privacy'];
+const PUBLIC_ROUTES = ['/auth', '/privacy', '/terms', '/reset-password'];
 
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading, nwSession, nwProcessing } = useAuth();
