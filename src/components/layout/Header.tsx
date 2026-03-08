@@ -18,6 +18,7 @@ const navLinks = [
   { label: 'News', path: '/news', icon: Newspaper },
   { label: 'Compare', path: '/compare', icon: GitCompareArrows },
   { label: 'Screener', path: '/screener', icon: Sparkles },
+  { label: 'Pricing', path: '/pricing', icon: Crown },
 ] as const;
 
 export function Header() {

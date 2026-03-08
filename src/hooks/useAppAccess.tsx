@@ -174,16 +174,9 @@ export function AppAccessProvider({ children }: { children: ReactNode }) {
     trySync();
   }, [user, isGuest, checkAccess]);
 
-  // Check NW SSO pro status from auth context
-  const nwPro = (() => {
-    try {
-      const method = localStorage.getItem('nw_login_method');
-      const tier = localStorage.getItem('nw_tier');
-      return method === 'novawealth' && tier === 'pro';
-    } catch { return false; }
-  })();
-
-  const isPro = (hasAccess && !isGuest) || nwPro;
+  // NW SSO pro status is now validated server-side via sync-novawealth-access.
+  // Do NOT trust localStorage nw_tier — it can be spoofed via devtools.
+  const isPro = hasAccess && !isGuest;
 
   return (
     <AppAccessContext.Provider
