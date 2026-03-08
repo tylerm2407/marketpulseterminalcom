@@ -10,6 +10,9 @@ import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { NativeAppShell } from "@/native/NativeAppShell";
 import { CustomCursor } from "@/components/effects/CustomCursor";
 import { ScrollAnimator } from "@/components/effects/ScrollAnimator";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
+import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
+import { KeyboardShortcutsProvider } from "@/components/KeyboardShortcutsProvider";
 import Index from "./pages/Index";
 import StockDossier from "./pages/StockDossier";
 import Watchlist from "./pages/Watchlist";
@@ -23,11 +26,11 @@ import Analytics from "./pages/Analytics";
 import Pricing from "./pages/Pricing";
 import Checkout from "./pages/Checkout";
 import Auth from "./pages/Auth";
+import Settings from "./pages/Settings";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
-import { OnboardingTour } from "@/components/OnboardingTour";
 import { NovaWealthAuthHandler } from "@/components/NovaWealthAuthHandler";
 import { RequireAuth } from "@/components/RequireAuth";
 
@@ -45,6 +48,8 @@ const App = () => (
           <BrowserRouter>
             <NativeAppShell>
               <NovaWealthAuthHandler />
+              <KeyboardShortcutsProvider />
+              <KeyboardShortcutsDialog />
               <Routes>
                 {/* Public routes — no chrome */}
                 <Route path="/auth" element={<Auth />} />
@@ -70,11 +75,13 @@ const App = () => (
                           <Route path="/portfolio" element={<Portfolio />} />
                           <Route path="/alerts" element={<PriceAlerts />} />
                           <Route path="/analytics" element={<Analytics />} />
+                          <Route path="/settings" element={<Settings />} />
+                          <Route path="/pricing" element={<Pricing />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </div>
                       <MobileBottomNav />
-                      <OnboardingTour />
+                      <OnboardingChecklist />
                     </RequireAuth>
                   }
                 />
