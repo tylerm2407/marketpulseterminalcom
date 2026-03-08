@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Eye, Home, Newspaper, GitCompareArrows, Sparkles, Search, X, Wallet, Bell, LogIn, LogOut, UserRound, Crown } from 'lucide-react';
+import { Eye, Home, Newspaper, GitCompareArrows, Sparkles, Search, X, Wallet, Bell, LogIn, LogOut, UserRound, Crown, Settings } from 'lucide-react';
 import logoImg from '@/assets/logo.png';
 import { SearchBar } from '@/components/search/SearchBar';
 import { useWatchlistStore } from '@/stores/watchlistStore';
