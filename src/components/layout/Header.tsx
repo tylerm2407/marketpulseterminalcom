@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Eye, Home, Newspaper, GitCompareArrows, Sparkles, Search, X, Wallet, Bell, LogIn, LogOut, UserRound } from 'lucide-react';
+import { Eye, Home, Newspaper, GitCompareArrows, Sparkles, Search, X, Wallet, Bell, LogIn, LogOut, UserRound, Crown } from 'lucide-react';
 import logoImg from '@/assets/logo.png';
 import { SearchBar } from '@/components/search/SearchBar';
 import { useWatchlistStore } from '@/stores/watchlistStore';
@@ -18,6 +18,7 @@ const navLinks = [
   { label: 'News', path: '/news', icon: Newspaper },
   { label: 'Compare', path: '/compare', icon: GitCompareArrows },
   { label: 'Screener', path: '/screener', icon: Sparkles },
+  { label: 'Pricing', path: '/pricing', icon: Crown },
 ] as const;
 
 export function Header() {

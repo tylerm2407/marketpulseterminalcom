@@ -8,11 +8,16 @@ export function Footer() {
           <strong className="text-[var(--text-secondary)]">Disclaimer:</strong> MarketPulse provides information and analysis only. This is not investment advice,
           a recommendation to buy or sell, or a solicitation. Data may be delayed. Consult a licensed financial advisor
           before making investment decisions.{' '}
-          <span className="underline cursor-pointer hover:text-[var(--text-secondary)] transition-colors">See Methodology</span>
         </p>
         <div className="flex items-center justify-center gap-4 mt-2">
           <Link to="/privacy" className="text-xs text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors underline">
             Privacy Policy
+          </Link>
+          <Link to="/terms" className="text-xs text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors underline">
+            Terms of Service
+          </Link>
+          <Link to="/pricing" className="text-xs text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors underline">
+            Pricing
           </Link>
         </div>
       </div>

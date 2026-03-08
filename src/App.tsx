@@ -24,6 +24,8 @@ import Pricing from "./pages/Pricing";
 import Checkout from "./pages/Checkout";
 import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { NovaWealthAuthHandler } from "@/components/NovaWealthAuthHandler";
@@ -48,6 +50,8 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 {/* Protected routes — wrapped with RequireAuth + app chrome */}
                 <Route
                   path="*"

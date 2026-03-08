@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import logoImg from '@/assets/logo.png';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -395,8 +396,28 @@ export default function Auth() {
           </p>
 
           <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
+            {!isSignUp && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!email) { toast.error('Enter your email first.'); return; }
+                  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/reset-password`,
+                  });
+                  if (error) toast.error(error.message);
+                  else toast.success('Check your email for a password reset link.');
+                }}
+                className="text-[var(--accent-primary)] hover:underline font-medium"
+              >
+                Forgot your password?
+              </button>
+            )}
+          </p>
+
+          <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
             By continuing you agree to our{' '}
-            <a href="/privacy" className="hover:underline text-[var(--text-secondary)]">Privacy Policy</a>.
+            <a href="/privacy" className="hover:underline text-[var(--text-secondary)]">Privacy Policy</a>{' '}
+            and <a href="/terms" className="hover:underline text-[var(--text-secondary)]">Terms of Service</a>.
             This app does not provide investment advice.
           </p>
         </div>
