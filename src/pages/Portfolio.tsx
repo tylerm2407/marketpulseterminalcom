@@ -182,6 +182,9 @@ export default function Portfolio() {
           </Card>
         </div>
 
+        {/* Performance Chart */}
+        <PerformanceChart holdings={holdings} quoteMap={quoteMap} />
+
         {/* Holdings Table */}
         <Card>
           <CardHeader className="pb-2">
