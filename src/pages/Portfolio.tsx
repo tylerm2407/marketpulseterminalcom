@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Footer } from '@/components/layout/Footer';
+import { PerformanceChart } from '@/components/portfolio/PerformanceChart';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
 import { useWatchlistQuotes } from '@/hooks/useStockData';
 import { toast } from 'sonner';
@@ -180,6 +181,9 @@ export default function Portfolio() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Performance Chart */}
+        <PerformanceChart holdings={holdings} quoteMap={quoteMap} />
 
         {/* Holdings Table */}
         <Card>
