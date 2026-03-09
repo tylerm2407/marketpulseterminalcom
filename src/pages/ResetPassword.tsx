@@ -38,8 +38,8 @@ export default function ResetPassword() {
       toast.error('Passwords do not match.');
       return;
     }
-    if (password.length < 6) {
-      toast.error('Password must be at least 6 characters.');
+    if (password.length < 8) {
+      toast.error('Password must be at least 8 characters.');
       return;
     }
     setSubmitting(true);
@@ -104,7 +104,7 @@ export default function ResetPassword() {
                   onChange={e => setPassword(e.target.value)}
                   className="pl-10 pr-10"
                   required
-                  minLength={6}
+                  minLength={8}
                   autoComplete="new-password"
                 />
                 <button
@@ -128,7 +128,7 @@ export default function ResetPassword() {
                   onChange={e => setConfirmPassword(e.target.value)}
                   className="pl-10"
                   required
-                  minLength={6}
+                  minLength={8}
                   autoComplete="new-password"
                 />
               </div>

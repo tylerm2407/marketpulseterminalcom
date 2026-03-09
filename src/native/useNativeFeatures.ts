@@ -91,7 +91,7 @@ export function usePushNotifications() {
         console.log('[Push] Action performed:', action.actionId, action.notification);
         // Handle deep link from notification data
         const deepLink = action.notification?.data?.url;
-        if (deepLink) {
+        if (deepLink && (deepLink.startsWith('marketpulse://') || deepLink.startsWith('/'))) {
           window.location.href = deepLink;
         }
       });
@@ -111,7 +111,8 @@ export function useDeepLinking() {
       App.addListener('appUrlOpen', event => {
         // Handle deep links: marketpulse://stock/AAPL → /stock/AAPL
         const slug = event.url.split('marketpulse:/').pop();
-        if (slug) {
+        const ALLOWED_ROUTES = ['/', '/watchlist', '/portfolio', '/analytics', '/news', '/screener', '/earnings', '/alerts', '/settings', '/pricing', '/auth'];
+        if (slug && (slug === '/' || ALLOWED_ROUTES.some(route => slug.startsWith(route)))) {
           window.location.href = slug;
         }
       });

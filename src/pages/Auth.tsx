@@ -320,7 +320,7 @@ export default function Auth() {
                   onChange={e => setPassword(e.target.value)}
                   className="pl-10 pr-10 input-premium"
                   required
-                  minLength={6}
+                  minLength={8}
                   autoComplete={isSignUp ? 'new-password' : 'current-password'}
                 />
                 <button
@@ -332,7 +332,7 @@ export default function Auth() {
                 </button>
               </div>
               {isSignUp && (
-                <p className="text-xs text-[var(--text-muted)]">Minimum 6 characters</p>
+                <p className="text-xs text-[var(--text-muted)]">Minimum 8 characters</p>
               )}
             </div>
 

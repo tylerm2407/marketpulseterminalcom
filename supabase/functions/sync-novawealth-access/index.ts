@@ -3,17 +3,22 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 import { safeParseBody, isValidEmail, isValidUUID, checkUnexpectedFields, validationError } from "../_shared/inputValidator.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ALLOWED_ORIGINS = ["https://marketpulseterminal.com", "https://www.marketpulseterminal.com", "http://localhost:5173", "http://localhost:3000"];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") ?? "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  };
+}
 
 const RATE_LIMIT = { functionName: "sync-novawealth-access", maxRequests: 5, windowSeconds: 60 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return validationError(corsHeaders, "Method not allowed");
+  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
+  if (req.method !== "POST") return validationError(getCorsHeaders(req), "Method not allowed");
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -23,32 +28,32 @@ serve(async (req) => {
 
   try {
     const rl = await checkRateLimit(req, RATE_LIMIT);
-    if (!rl.allowed) return rateLimitResponse(corsHeaders, rl.retryAfterSeconds!);
+    if (!rl.allowed) return rateLimitResponse(getCorsHeaders(req), rl.retryAfterSeconds!);
 
     // Verify the caller is authenticated and matches the user_id being synced
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
     const token = authHeader.replace("Bearer ", "");
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
     if (authError || !authData?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     const parsed = await safeParseBody(req, 10240);
-    if (!parsed.ok) return validationError(corsHeaders, parsed.error);
+    if (!parsed.ok) return validationError(getCorsHeaders(req), parsed.error);
     const body = parsed.body;
 
     const unexpected = checkUnexpectedFields(body, ["user_id", "email"]);
-    if (unexpected.length > 0) return validationError(corsHeaders, `Unexpected fields: ${unexpected.join(", ")}`);
+    if (unexpected.length > 0) return validationError(getCorsHeaders(req), `Unexpected fields: ${unexpected.join(", ")}`);
 
-    if (!isValidUUID(body.user_id)) return validationError(corsHeaders, "Invalid user_id");
-    if (!isValidEmail(body.email)) return validationError(corsHeaders, "Invalid email");
+    if (!isValidUUID(body.user_id)) return validationError(getCorsHeaders(req), "Invalid user_id");
+    if (!isValidEmail(body.email)) return validationError(getCorsHeaders(req), "Invalid email");
 
     const user_id = body.user_id as string;
     const email = body.email as string;
@@ -56,7 +61,7 @@ serve(async (req) => {
     // Verify the authenticated user matches the requested user_id
     if (authData.user.id !== user_id) {
       return new Response(JSON.stringify({ error: "Forbidden: user_id mismatch" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -95,13 +100,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ novawealth_subscriber: isSubscriber }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("[sync-novawealth] ERROR:", msg);
     return new Response(JSON.stringify({ error: "An error occurred" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       status: 500,
     });
   }

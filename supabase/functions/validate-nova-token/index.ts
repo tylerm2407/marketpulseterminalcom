@@ -3,13 +3,19 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimiter.ts";
 import { safeParseBody, checkUnexpectedFields, validationError } from "../_shared/inputValidator.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ALLOWED_ORIGINS = ["https://marketpulseterminal.com", "https://www.marketpulseterminal.com", "http://localhost:5173", "http://localhost:3000"];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") ?? "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  };
+}
 
 const NOVA_WEALTH_URL = "https://dbwuegchdysuocbpsprd.supabase.co";
-const NOVA_WEALTH_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRid3VlZ2NoZHlzdW9jYnBzcHJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNzYyMTAsImV4cCI6MjA4Njc1MjIxMH0.6LEKjLXhaxeRublNoAITpVVueHwpUPuLxS0sbgcTUlE";
+const NOVA_WEALTH_ANON_KEY = Deno.env.get("NOVA_WEALTH_ANON_KEY") ?? "";
 
 // Strict rate limit - this is a sensitive auth endpoint
 const RATE_LIMIT = { functionName: "validate-nova-token", maxRequests: 10, windowSeconds: 300 };
@@ -25,23 +31,23 @@ const logStep = (step: string, details?: any) => {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
-  if (req.method !== "POST") return validationError(corsHeaders, "Method not allowed");
+  if (req.method !== "POST") return validationError(getCorsHeaders(req), "Method not allowed");
 
   try {
     const rl = await checkRateLimit(req, RATE_LIMIT);
-    if (!rl.allowed) return rateLimitResponse(corsHeaders, rl.retryAfterSeconds!);
+    if (!rl.allowed) return rateLimitResponse(getCorsHeaders(req), rl.retryAfterSeconds!);
 
     const parsed = await safeParseBody(req, 10240); // 10KB max
-    if (!parsed.ok) return validationError(corsHeaders, parsed.error);
+    if (!parsed.ok) return validationError(getCorsHeaders(req), parsed.error);
     const body = parsed.body;
 
     const unexpected = checkUnexpectedFields(body, ["token"]);
-    if (unexpected.length > 0) return validationError(corsHeaders, `Unexpected fields: ${unexpected.join(", ")}`);
+    if (unexpected.length > 0) return validationError(getCorsHeaders(req), `Unexpected fields: ${unexpected.join(", ")}`);
 
     if (typeof body.token !== "string" || body.token.length < 10 || body.token.length > 500) {
-      return validationError(corsHeaders, "Invalid token");
+      return validationError(getCorsHeaders(req), "Invalid token");
     }
     const token = body.token as string;
 
@@ -64,14 +70,14 @@ serve(async (req) => {
     if (!validateData.valid) {
       logStep("Token invalid");
       return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         status: 401,
       });
     }
 
     const { email, user_id: novaUserId } = validateData;
     if (typeof email !== "string" || !email.includes("@")) {
-      return validationError(corsHeaders, "Invalid response from auth provider");
+      return validationError(getCorsHeaders(req), "Invalid response from auth provider");
     }
     logStep("Token validated", { email, novaUserId });
 
@@ -80,7 +86,8 @@ serve(async (req) => {
     const avatarUrl: string | null = null;
 
     // Step 3: Create or find local user
-    const { data: existingUsers } = await supabase.auth.admin.listUsers();
+    // TODO: implement pagination for >1000 users
+    const { data: existingUsers } = await supabase.auth.admin.listUsers({ perPage: 1000, page: 1 });
     const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
 
     let userId: string;
@@ -127,7 +134,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: true, hashed_token: hashedToken, email, display_name: displayName,
     }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
@@ -135,7 +142,7 @@ serve(async (req) => {
     logStep("ERROR", { message: msg });
     // Don't expose internal error details
     return new Response(JSON.stringify({ error: "Authentication failed" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       status: 500,
     });
   }

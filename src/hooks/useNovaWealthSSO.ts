@@ -9,8 +9,7 @@ const NW_KEYS = {
 
 const NW_VALIDATE_URL =
   'https://dbwuegchdysuocbpsprd.supabase.co/functions/v1/validate-auth-token';
-const NW_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRid3VlZ2NoZHlzdW9jYnBzcHJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNzYyMTAsImV4cCI6MjA4Njc1MjIxMH0.6LEKjLXhaxeRublNoAITpVVueHwpUPuLxS0sbgcTUlE';
+const NW_ANON_KEY = import.meta.env.VITE_NOVA_WEALTH_ANON_KEY;
 
 export interface NWSession {
   email: string;

@@ -6,22 +6,28 @@ import {
   safeParseBody, isValidEmail, sanitize, checkUnexpectedFields, validationError,
 } from "../_shared/inputValidator.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ALLOWED_ORIGINS = ["https://marketpulseterminal.com", "https://www.marketpulseterminal.com", "http://localhost:5173", "http://localhost:3000"];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") ?? "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  };
+}
 
 const SOURCE_APP = "marketpulse_terminal";
-const REFERRAL_COUPON_ID = "jPSNu7Zh";
-const MONTHLY_PRICE_ID = "price_1T1X6BAmUZkn8na4fZGfuj7k";
-const YEARLY_PRICE_ID = "price_1T75DiAmUZkn8na4mV6RRBUI";
+const REFERRAL_COUPON_ID = Deno.env.get("STRIPE_REFERRAL_COUPON_ID") ?? "";
+const MONTHLY_PRICE_ID = Deno.env.get("STRIPE_MONTHLY_PRICE_ID") ?? "";
+const YEARLY_PRICE_ID = Deno.env.get("STRIPE_YEARLY_PRICE_ID") ?? "";
 const RATE_LIMIT = { functionName: "create-checkout", maxRequests: 10, windowSeconds: 60 };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
-  if (req.method !== "POST") return validationError(corsHeaders, "Method not allowed");
+  if (req.method !== "POST") return validationError(getCorsHeaders(req), "Method not allowed");
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -32,17 +38,17 @@ serve(async (req) => {
   try {
     // Rate limit
     const rl = await checkRateLimit(req, RATE_LIMIT);
-    if (!rl.allowed) return rateLimitResponse(corsHeaders, rl.retryAfterSeconds!);
+    if (!rl.allowed) return rateLimitResponse(getCorsHeaders(req), rl.retryAfterSeconds!);
 
     // Parse & validate body
     const parsed = await safeParseBody(req);
-    if (!parsed.ok) return validationError(corsHeaders, parsed.error);
+    if (!parsed.ok) return validationError(getCorsHeaders(req), parsed.error);
     const body = parsed.body;
 
     const unexpected = checkUnexpectedFields(body, [
       "guest_email", "billing_period", "referral_code", "referrer_id", "referral_code_id",
     ]);
-    if (unexpected.length > 0) return validationError(corsHeaders, `Unexpected fields: ${unexpected.join(", ")}`);
+    if (unexpected.length > 0) return validationError(getCorsHeaders(req), `Unexpected fields: ${unexpected.join(", ")}`);
 
     const guestEmail = typeof body.guest_email === "string" ? sanitize(body.guest_email as string).toLowerCase() : null;
     const billingPeriod = body.billing_period === "yearly" ? "yearly" : "monthly";
@@ -64,7 +70,7 @@ serve(async (req) => {
       userEmail = user.email;
       userId = user.id;
     } else if (guestEmail) {
-      if (!isValidEmail(guestEmail)) return validationError(corsHeaders, "Invalid email address");
+      if (!isValidEmail(guestEmail)) return validationError(getCorsHeaders(req), "Invalid email address");
       userEmail = guestEmail;
     } else {
       throw new Error("No authentication or email provided");
@@ -124,12 +130,13 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create(sessionParams);
 
     return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    console.error("[create-checkout] ERROR:", error);
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       status: 500,
     });
   }

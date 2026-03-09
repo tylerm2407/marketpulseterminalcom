@@ -2,11 +2,16 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, stripe-signature",
-};
+const ALLOWED_ORIGINS = ["https://marketpulseterminal.com", "https://www.marketpulseterminal.com", "http://localhost:5173", "http://localhost:3000"];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") ?? "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
+  };
+}
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
@@ -59,10 +64,6 @@ async function postToRevenueCat(
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
@@ -88,7 +89,7 @@ serve(async (req) => {
     } catch (err) {
       logStep("Webhook signature verification failed", { err });
       return new Response(JSON.stringify({ error: "Invalid signature" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         status: 400,
       });
     }
@@ -107,7 +108,7 @@ serve(async (req) => {
     if (!relevantEvents.has(event.type)) {
       logStep("Ignoring irrelevant event", { type: event.type });
       return new Response(JSON.stringify({ received: true, skipped: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         status: 200,
       });
     }
@@ -136,7 +137,7 @@ serve(async (req) => {
     if (!subscription) {
       logStep("No subscription found in event");
       return new Response(JSON.stringify({ received: true, skipped: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         status: 200,
       });
     }
@@ -156,7 +157,7 @@ serve(async (req) => {
     if (customer.deleted) {
       logStep("Customer deleted, skipping");
       return new Response(JSON.stringify({ received: true, skipped: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         status: 200,
       });
     }
@@ -165,7 +166,7 @@ serve(async (req) => {
     if (!customerEmail) {
       logStep("No customer email found");
       return new Response(JSON.stringify({ received: true, skipped: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         status: 200,
       });
     }
@@ -173,8 +174,9 @@ serve(async (req) => {
     logStep("Looking up Supabase user", { email: customerEmail });
 
     // Find the Supabase user by email
+    // TODO: implement pagination for >1000 users
     const { data: users, error: userError } =
-      await supabaseClient.auth.admin.listUsers();
+      await supabaseClient.auth.admin.listUsers({ perPage: 1000, page: 1 });
 
     if (userError) throw new Error(`Error listing users: ${userError.message}`);
 
@@ -187,7 +189,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ received: true, error: "User not found" }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           status: 200,
         }
       );
@@ -207,15 +209,15 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ received: true, synced_to_revenuecat: true }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         status: 200,
       }
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message });
-    return new Response(JSON.stringify({ error: message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       status: 500,
     });
   }
