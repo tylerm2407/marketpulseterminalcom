@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Eye, Home, Newspaper, GitCompareArrows, Sparkles, Search, X, Wallet, Bell, LogIn, LogOut, UserRound, Crown, Settings, LayoutGrid, Users, Zap, Globe, CalendarDays, ChevronDown, BarChart3 } from 'lucide-react';
+import { Eye, Home, Newspaper, GitCompareArrows, Sparkles, Search, X, Wallet, Bell, LogIn, LogOut, UserRound, Crown, Settings, LayoutGrid, Users, Zap, Globe, CalendarDays, ChevronDown, BarChart3, BookOpen } from 'lucide-react';
 import logoImg from '@/assets/logo.png';
 import { SearchBar } from '@/components/search/SearchBar';
 import { useWatchlistStore } from '@/stores/watchlistStore';
@@ -27,6 +27,8 @@ const marketsLinks = [
   { label: 'Economic Calendar', path: '/economic-calendar', icon: Globe, description: 'Fed, CPI, jobs data' },
   { label: 'Insider Activity', path: '/insiders', icon: Users, description: 'Insider buy/sell tracker' },
   { label: 'IPO Calendar', path: '/ipo', icon: Zap, description: 'Upcoming IPOs' },
+  { label: 'Daily Briefing', path: '/briefing', icon: Zap, description: 'What happened & why it matters' },
+  { label: 'Investing Glossary', path: '/glossary', icon: BookOpen, description: 'Plain English market terms' },
 ] as const;
 
 export function Header() {

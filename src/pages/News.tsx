@@ -1,6 +1,6 @@
 import { Footer } from '@/components/layout/Footer';
 import { TickerMarquee } from '@/components/TickerMarquee';
-import { Newspaper, ExternalLink, Loader2, Sparkles, Bot, X } from 'lucide-react';
+import { Newspaper, ExternalLink, Loader2, Sparkles, Bot, X, Radio } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,8 @@ import { LatestBuzz } from '@/components/dossier/LatestBuzz';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface NewsItem {
   title: string;
@@ -139,6 +141,98 @@ function AiSummaryButton({ item }: { item: NewsItem }) {
   );
 }
 
+const MORE_SOURCES_TABS = ['All', 'CNBC', 'MarketWatch', 'Nasdaq', 'r/investing', 'r/stocks'] as const;
+type MoreSourceTab = typeof MORE_SOURCES_TABS[number];
+
+function useAggregatedNews(source: string) {
+  return useQuery({
+    queryKey: ['aggregated-news', source],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('news-aggregator', {});
+      if (error) throw error;
+      const items = (data?.items ?? []) as Array<{
+        title: string; url: string; publishedDate: string;
+        text: string; site: string; category: string;
+      }>;
+      if (source === 'All') return items;
+      return items.filter((item) => item.site === source);
+    },
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+function MoreSourcesPanel() {
+  const [activeTab, setActiveTab] = useState<MoreSourceTab>('All');
+  const { data: items, isLoading } = useAggregatedNews(activeTab);
+
+  return (
+    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as MoreSourceTab)}>
+      <TabsList className="mb-4 flex flex-wrap gap-1 h-auto bg-transparent p-0">
+        {MORE_SOURCES_TABS.map((tab) => (
+          <TabsTrigger
+            key={tab}
+            value={tab}
+            className="text-xs px-3 py-1.5 rounded-md border border-[var(--border-subtle)] data-[state=active]:bg-[var(--accent-primary)] data-[state=active]:text-white data-[state=active]:border-[var(--accent-primary)]"
+          >
+            {tab}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+
+      {MORE_SOURCES_TABS.map((tab) => (
+        <TabsContent key={tab} value={tab} className="mt-0">
+          {isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="card-elevated p-4 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                  <Skeleton className="h-3 w-full" />
+                </div>
+              ))}
+            </div>
+          ) : !items?.length ? (
+            <div className="text-center py-10 card-elevated">
+              <p className="text-sm text-[var(--text-muted)]">No recent articles from this source.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {items.map((item, i) => (
+                <a
+                  key={i}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="card-elevated p-4 block group hover:border-[var(--border-active)] transition-colors"
+                >
+                  <h3 className="font-semibold text-[var(--text-primary)] text-sm leading-snug group-hover:text-[var(--accent-primary)] transition-colors line-clamp-2 mb-1.5">
+                    {item.title}
+                  </h3>
+                  {item.text && (
+                    <p className="text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed mb-2">
+                      {item.text}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
+                    <Badge variant="outline" className="text-[10px] font-mono border-[var(--border-subtle)] text-[var(--text-muted)]">
+                      {item.site}
+                    </Badge>
+                    <span>· {formatRelativeDate(item.publishedDate)}</span>
+                    <span className="ml-auto flex items-center gap-1 text-[var(--accent-primary)]">
+                      Read <ExternalLink className="h-3 w-3" />
+                    </span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      ))}
+    </Tabs>
+  );
+}
+
 export default function News() {
   const { data: news, isLoading } = useMarketNews();
   const [selectedBuzzTicker, setSelectedBuzzTicker] = useState<string | null>(null);
@@ -243,6 +337,15 @@ export default function News() {
             ))}
           </div>
         )}
+        {/* More News Sources Section */}
+        <div className="mt-10">
+          <div className="flex items-center gap-2 mb-4">
+            <Radio className="h-5 w-5 text-[var(--accent-primary)]" />
+            <h2 className="text-xl font-bold text-[var(--text-primary)]">More Sources</h2>
+            <span className="text-xs text-[var(--text-muted)]">CNBC · MarketWatch · Reddit · Nasdaq</span>
+          </div>
+          <MoreSourcesPanel />
+        </div>
       </main>
       <Footer />
     </div>

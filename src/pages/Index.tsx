@@ -8,6 +8,7 @@ import { Sparkline } from '@/components/Sparkline';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MarketIndices } from '@/components/market/MarketIndices';
 import { SectorHeatmap } from '@/components/market/SectorHeatmap';
+import { MarketSentiment } from '@/components/market/MarketSentiment';
 import { stocksList } from '@/data/mockStocks';
 import { useWatchlistQuotes, useSparklines } from '@/hooks/useStockData';
 import { useMarketOverview } from '@/hooks/useMarketOverview';
@@ -93,6 +94,11 @@ const Index = () => {
           )}
         </div>
         <MarketIndices indices={marketOverview?.indices} isLoading={marketLoading} />
+      </section>
+
+      {/* Market Sentiment */}
+      <section className="container mx-auto px-4 pt-4 pb-0 max-w-5xl scroll-animate">
+        <MarketSentiment />
       </section>
 
       {/* Sector Heatmap */}

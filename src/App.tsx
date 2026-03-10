@@ -37,6 +37,8 @@ import IPOCalendar from "./pages/IPOCalendar";
 import EconomicCalendar from "./pages/EconomicCalendar";
 import { NovaWealthAuthHandler } from "@/components/NovaWealthAuthHandler";
 import { RequireAuth } from "@/components/RequireAuth";
+import DailyBriefing from "./pages/DailyBriefing";
+import Glossary from "./pages/Glossary";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +87,8 @@ const App = () => (
                           <Route path="/insiders" element={<InsiderTrading />} />
                           <Route path="/ipo" element={<IPOCalendar />} />
                           <Route path="/economic-calendar" element={<EconomicCalendar />} />
+                          <Route path="/briefing" element={<DailyBriefing />} />
+                          <Route path="/glossary" element={<Glossary />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </div>
