@@ -1,12 +1,12 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useWatchlistStore } from '@/stores/watchlistStore';
-import { Home, Eye, Wallet, BarChart3, Settings } from 'lucide-react';
+import { Home, Eye, Wallet, LayoutGrid, Settings } from 'lucide-react';
 
 const navItems = [
   { label: 'Home', icon: Home, path: '/' },
   { label: 'Watchlist', icon: Eye, path: '/watchlist' },
   { label: 'Portfolio', icon: Wallet, path: '/portfolio' },
-  { label: 'Analytics', icon: BarChart3, path: '/analytics' },
+  { label: 'Heat Map', icon: LayoutGrid, path: '/heatmap' },
   { label: 'Settings', icon: Settings, path: '/settings' },
 ] as const;
 

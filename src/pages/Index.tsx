@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useReferralDetection } from '@/hooks/useReferralDetection';
-import { BarChart3, ArrowUp, ArrowDown, Shield, FileText, Eye, Star, Clock, CalendarDays, Activity } from 'lucide-react';
+import { BarChart3, ArrowUp, ArrowDown, Shield, FileText, Eye, Star, Clock, CalendarDays, Activity, TrendingUp, Cpu, Zap, Shield as ShieldIcon, DollarSign, Globe2, LayoutGrid } from 'lucide-react';
 import { SearchBar } from '@/components/search/SearchBar';
 import { Footer } from '@/components/layout/Footer';
 import { TickerMarquee } from '@/components/TickerMarquee';
@@ -19,6 +19,15 @@ import { TiltCard } from '@/components/effects/TiltCard';
 import { AmbientOrbs } from '@/components/effects/AmbientOrbs';
 
 const EXPLORE_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'TSLA'];
+
+const MARKET_THEMES = [
+  { name: 'AI Infrastructure', icon: Cpu, tickers: ['NVDA', 'MSFT', 'GOOGL', 'AMZN'] },
+  { name: 'Semiconductors', icon: Activity, tickers: ['NVDA', 'AMD', 'INTC', 'TSM'] },
+  { name: 'Clean Energy', icon: Zap, tickers: ['ENPH', 'NEE', 'FSLR', 'BEP'] },
+  { name: 'Defense & Aerospace', icon: ShieldIcon, tickers: ['LMT', 'RTX', 'NOC', 'GD'] },
+  { name: 'Fintech', icon: DollarSign, tickers: ['PYPL', 'SQ', 'COIN', 'AFRM'] },
+  { name: 'Consumer Tech', icon: Globe2, tickers: ['AAPL', 'AMZN', 'META', 'TSLA'] },
+] as const;
 
 const Index = () => {
   useReferralDetection();
@@ -122,6 +131,41 @@ const Index = () => {
           </div>
         </section>
       )}
+
+      {/* Market Themes */}
+      <section className="container mx-auto px-4 pt-8 pb-0 max-w-5xl scroll-animate">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-[var(--accent-primary)]" />
+            <h2 className="text-sm font-semibold font-display text-[var(--text-primary)]">Market Themes</h2>
+          </div>
+          <Link to="/heatmap" className="text-xs text-[var(--accent-primary)] hover:underline flex items-center gap-1">
+            <LayoutGrid className="h-3 w-3" />
+            Full Heat Map
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {MARKET_THEMES.map(theme => (
+            <Link
+              key={theme.name}
+              to="/heatmap"
+              className="card-elevated p-3 hover:border-[var(--border-active)] transition-all group"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-md bg-[rgba(34,197,94,0.1)] flex items-center justify-center">
+                  <theme.icon className="h-3.5 w-3.5 text-[var(--accent-primary)]" />
+                </div>
+                <span className="text-xs font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors">{theme.name}</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {theme.tickers.map(t => (
+                  <span key={t} className="text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg-elevated)] px-1.5 py-0.5 rounded">{t}</span>
+                ))}
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {/* Trending */}
       <section className="container mx-auto px-4 py-8 max-w-5xl">

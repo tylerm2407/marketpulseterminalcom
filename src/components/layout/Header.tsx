@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Eye, Home, Newspaper, GitCompareArrows, Sparkles, Search, X, Wallet, Bell, LogIn, LogOut, UserRound, Crown, Settings } from 'lucide-react';
+import { Eye, Home, Newspaper, GitCompareArrows, Sparkles, Search, X, Wallet, Bell, LogIn, LogOut, UserRound, Crown, Settings, LayoutGrid, Users, Zap, Globe, CalendarDays, ChevronDown, BarChart3 } from 'lucide-react';
 import logoImg from '@/assets/logo.png';
 import { SearchBar } from '@/components/search/SearchBar';
 import { useWatchlistStore } from '@/stores/watchlistStore';
@@ -10,15 +10,23 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
-const navLinks = [
+const mainNavLinks = [
   { label: 'Home', path: '/', icon: Home },
   { label: 'Watchlist', path: '/watchlist', icon: Eye },
   { label: 'Portfolio', path: '/portfolio', icon: Wallet },
   { label: 'Alerts', path: '/alerts', icon: Bell },
-  { label: 'News', path: '/news', icon: Newspaper },
-  { label: 'Compare', path: '/compare', icon: GitCompareArrows },
   { label: 'Screener', path: '/screener', icon: Sparkles },
   { label: 'Pricing', path: '/pricing', icon: Crown },
+] as const;
+
+const marketsLinks = [
+  { label: 'Heat Map', path: '/heatmap', icon: LayoutGrid, description: 'Visual market overview' },
+  { label: 'Compare Stocks', path: '/compare', icon: GitCompareArrows, description: 'Side-by-side analysis' },
+  { label: 'News', path: '/news', icon: Newspaper, description: 'Latest market news' },
+  { label: 'Earnings Calendar', path: '/earnings', icon: CalendarDays, description: 'Upcoming earnings' },
+  { label: 'Economic Calendar', path: '/economic-calendar', icon: Globe, description: 'Fed, CPI, jobs data' },
+  { label: 'Insider Activity', path: '/insiders', icon: Users, description: 'Insider buy/sell tracker' },
+  { label: 'IPO Calendar', path: '/ipo', icon: Zap, description: 'Upcoming IPOs' },
 ] as const;
 
 export function Header() {
@@ -63,7 +71,7 @@ export function Header() {
           </Button>
 
           <div className="hidden md:flex items-center gap-0.5">
-            {navLinks.map(({ label, path, icon: Icon }) => {
+            {mainNavLinks.map(({ label, path, icon: Icon }) => {
               const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
               return (
                 <Link
@@ -85,6 +93,32 @@ export function Header() {
                 </Link>
               );
             })}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className={`nav-link-glow flex items-center gap-1.5 text-sm font-medium px-2.5 py-1.5 rounded-md transition-all ${
+                  marketsLinks.some(l => location.pathname.startsWith(l.path))
+                    ? 'text-[var(--accent-primary)] active'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--accent-primary)]'
+                }`}>
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Markets</span>
+                  <ChevronDown className="h-3 w-3 opacity-60" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-[var(--bg-elevated)] border-[var(--border-subtle)]">
+                {marketsLinks.map(({ label, path, icon: Icon, description }) => (
+                  <DropdownMenuItem key={path} asChild className="cursor-pointer gap-3 py-2">
+                    <Link to={path}>
+                      <Icon className="h-4 w-4 text-[var(--accent-primary)] shrink-0" />
+                      <div>
+                        <div className="text-sm font-medium text-[var(--text-primary)]">{label}</div>
+                        <div className="text-xs text-[var(--text-muted)]">{description}</div>
+                      </div>
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {user ? (

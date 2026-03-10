@@ -31,6 +31,10 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import HeatMap from "./pages/HeatMap";
+import InsiderTrading from "./pages/InsiderTrading";
+import IPOCalendar from "./pages/IPOCalendar";
+import EconomicCalendar from "./pages/EconomicCalendar";
 import { NovaWealthAuthHandler } from "@/components/NovaWealthAuthHandler";
 import { RequireAuth } from "@/components/RequireAuth";
 
@@ -77,6 +81,10 @@ const App = () => (
                           <Route path="/analytics" element={<Analytics />} />
                           <Route path="/settings" element={<Settings />} />
                           <Route path="/pricing" element={<Pricing />} />
+                          <Route path="/heatmap" element={<HeatMap />} />
+                          <Route path="/insiders" element={<InsiderTrading />} />
+                          <Route path="/ipo" element={<IPOCalendar />} />
+                          <Route path="/economic-calendar" element={<EconomicCalendar />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </div>
