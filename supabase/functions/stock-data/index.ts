@@ -244,7 +244,7 @@ async function fetchMarketOverview(apiKey: string) {
   const cached = await getFromCache(cacheKey);
   if (cached) return cached;
 
-  const allTickers = [...INDEX_TICKERS, ...Object.keys(SECTOR_ETFS)];
+  const allTickers = [...INDEX_TICKERS, VIX_TICKER, ...Object.keys(SECTOR_ETFS)];
   const snapshots = await Promise.all(
     allTickers.map(async (ticker) => {
       const data = await fetchPolygon(`/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}`, {}, apiKey);
@@ -268,6 +268,22 @@ async function fetchMarketOverview(apiKey: string) {
       };
     });
 
+  // VIX data
+  const vixSnap = snapshots.find(s => s.ticker === VIX_TICKER && s.snapshot);
+  let vix = null;
+  if (vixSnap?.snapshot) {
+    const snap = vixSnap.snapshot;
+    const lastTrade = snap.lastTrade || snap.last_trade || {};
+    const prevDay = snap.prevDay || snap.prev_day || {};
+    const price = lastTrade.p || snap.day?.c || 0;
+    const prevClose = prevDay.c || price;
+    vix = {
+      ticker: VIX_TICKER, name: 'VIX', price,
+      change: snap.todaysChange ?? (price - prevClose),
+      changePercent: snap.todaysChangePerc ?? (prevClose ? ((price - prevClose) / prevClose) * 100 : 0),
+    };
+  }
+
   const sectors = snapshots
     .filter(s => SECTOR_ETFS[s.ticker] && s.snapshot)
     .map(s => {
@@ -284,7 +300,7 @@ async function fetchMarketOverview(apiKey: string) {
     })
     .sort((a, b) => b.changePercent - a.changePercent);
 
-  const result = { indices, sectors, timestamp: new Date().toISOString() };
+  const result = { indices, sectors, vix, timestamp: new Date().toISOString() };
   if (indices.length > 0) await setCache(cacheKey, result, CACHE_TTL['market-overview']);
   return result;
 }
