@@ -316,6 +316,61 @@ function getDateNDaysAgo(n: number): string {
   return d.toISOString().split('T')[0];
 }
 
+function getDateNDaysFromNow(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+}
+
+// ---------- Earnings Calendar ----------
+async function fetchEarningsCalendar(apiKey: string) {
+  const cacheKey = 'earnings-calendar';
+  const cached = await getFromCache(cacheKey);
+  if (cached) return cached;
+
+  // Fetch upcoming earnings for this week and next using Polygon's ticker events
+  const from = getToday();
+  const to = getDateNDaysFromNow(14);
+
+  // Use grouped daily to get a broad set of stocks, then filter by those with earnings
+  // Polygon doesn't have a dedicated earnings calendar, so we use the reference/tickers endpoint
+  // with a broader approach: fetch earnings from vX/reference/financials filtered by upcoming dates
+  
+  // Alternative: use the stock financials endpoint to look for upcoming report dates
+  const url = `${POLYGON_BASE}/vX/reference/financials?filing_date.gte=${from}&filing_date.lte=${to}&limit=100&order=asc&sort=filing_date&apiKey=${apiKey}`;
+  
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn('Earnings fetch failed:', res.status);
+      return { earnings: [], from, to };
+    }
+    const data = await res.json();
+    const results = data?.results || [];
+    
+    // Extract unique tickers with their filing dates
+    const earningsMap = new Map<string, any>();
+    for (const item of results) {
+      const ticker = item.tickers?.[0] || item.ticker;
+      if (!ticker || earningsMap.has(ticker)) continue;
+      earningsMap.set(ticker, {
+        ticker,
+        reportDate: item.filing_date || item.period_of_report_date,
+        fiscalPeriod: item.fiscal_period,
+        fiscalYear: item.fiscal_year,
+      });
+    }
+    
+    const earnings = Array.from(earningsMap.values());
+    const result = { earnings, from, to };
+    if (earnings.length > 0) await setCache(cacheKey, result, CACHE_TTL.earnings);
+    return result;
+  } catch (err) {
+    console.error('Earnings calendar error:', err);
+    return { earnings: [], from, to };
+  }
+}
+
 // ---------- Periodic cache cleanup ----------
 let requestCount = 0;
 async function maybeCleanupCache() {
