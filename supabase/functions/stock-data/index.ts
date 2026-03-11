@@ -232,6 +232,7 @@ async function fetchSparklines(tickers: string[], apiKey: string) {
 
 // ---------- Market Overview ----------
 const INDEX_TICKERS = ['SPY', 'QQQ', 'DIA', 'IWM'];
+const VIX_TICKER = 'VIXY'; // VIX ETF proxy
 const SECTOR_ETFS: Record<string, string> = {
   XLK: 'Technology', XLF: 'Financial Services', XLV: 'Healthcare',
   XLC: 'Communication Services', XLY: 'Consumer Cyclical', XLP: 'Consumer Defensive',
