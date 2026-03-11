@@ -20,6 +20,7 @@ export interface SectorData {
 export interface MarketOverviewData {
   indices: IndexData[];
   sectors: SectorData[];
+  vix?: IndexData;
   timestamp: string;
 }
 
