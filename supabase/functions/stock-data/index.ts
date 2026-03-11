@@ -26,6 +26,7 @@ const CACHE_TTL: Record<string, number> = {
   'sparklines': 30 * 60,
   'news':       15 * 60,
   'market-overview': 5 * 60,
+  'earnings':   4 * 60 * 60,
 };
 
 // ---------- Rate limit config ----------
