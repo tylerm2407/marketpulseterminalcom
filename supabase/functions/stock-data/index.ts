@@ -464,6 +464,9 @@ serve(async (req) => {
       case 'market-overview':
         data = await fetchMarketOverview(apiKey);
         break;
+      case 'earnings':
+        data = await fetchEarningsCalendar(apiKey);
+        break;
     }
 
     maybeCleanupCache().catch(() => {});
