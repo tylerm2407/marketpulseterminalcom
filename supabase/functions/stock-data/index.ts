@@ -387,7 +387,7 @@ async function maybeCleanupCache() {
 }
 
 // ---------- Allowed types ----------
-const VALID_TYPES = new Set(["dossier", "quote", "search", "sparklines", "market-overview"]);
+const VALID_TYPES = new Set(["dossier", "quote", "search", "sparklines", "market-overview", "earnings"]);
 
 // ---------- Main handler ----------
 serve(async (req) => {
