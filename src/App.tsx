@@ -27,6 +27,8 @@ import Pricing from "./pages/Pricing";
 import Checkout from "./pages/Checkout";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
+import Profile from "./pages/Profile";
+import SectorStocks from "./pages/SectorStocks";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import ResetPassword from "./pages/ResetPassword";
