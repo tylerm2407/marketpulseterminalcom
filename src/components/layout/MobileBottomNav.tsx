@@ -1,13 +1,13 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useWatchlistStore } from '@/stores/watchlistStore';
-import { Home, Eye, Wallet, LayoutGrid, Settings } from 'lucide-react';
+import { Home, Eye, Wallet, LayoutGrid, UserRound } from 'lucide-react';
 
 const navItems = [
   { label: 'Home', icon: Home, path: '/' },
   { label: 'Watchlist', icon: Eye, path: '/watchlist' },
   { label: 'Portfolio', icon: Wallet, path: '/portfolio' },
   { label: 'Heat Map', icon: LayoutGrid, path: '/heatmap' },
-  { label: 'Settings', icon: Settings, path: '/settings' },
+  { label: 'Profile', icon: UserRound, path: '/profile' },
 ] as const;
 
 export function MobileBottomNav() {
