@@ -26,6 +26,7 @@ const CACHE_TTL: Record<string, number> = {
   'sparklines': 30 * 60,
   'news':       15 * 60,
   'market-overview': 5 * 60,
+  'earnings':   4 * 60 * 60,
 };
 
 // ---------- Rate limit config ----------
@@ -232,6 +233,7 @@ async function fetchSparklines(tickers: string[], apiKey: string) {
 
 // ---------- Market Overview ----------
 const INDEX_TICKERS = ['SPY', 'QQQ', 'DIA', 'IWM'];
+const VIX_TICKER = 'VIXY'; // VIX ETF proxy
 const SECTOR_ETFS: Record<string, string> = {
   XLK: 'Technology', XLF: 'Financial Services', XLV: 'Healthcare',
   XLC: 'Communication Services', XLY: 'Consumer Cyclical', XLP: 'Consumer Defensive',
@@ -243,7 +245,7 @@ async function fetchMarketOverview(apiKey: string) {
   const cached = await getFromCache(cacheKey);
   if (cached) return cached;
 
-  const allTickers = [...INDEX_TICKERS, ...Object.keys(SECTOR_ETFS)];
+  const allTickers = [...INDEX_TICKERS, VIX_TICKER, ...Object.keys(SECTOR_ETFS)];
   const snapshots = await Promise.all(
     allTickers.map(async (ticker) => {
       const data = await fetchPolygon(`/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}`, {}, apiKey);
@@ -267,6 +269,22 @@ async function fetchMarketOverview(apiKey: string) {
       };
     });
 
+  // VIX data
+  const vixSnap = snapshots.find(s => s.ticker === VIX_TICKER && s.snapshot);
+  let vix = null;
+  if (vixSnap?.snapshot) {
+    const snap = vixSnap.snapshot;
+    const lastTrade = snap.lastTrade || snap.last_trade || {};
+    const prevDay = snap.prevDay || snap.prev_day || {};
+    const price = lastTrade.p || snap.day?.c || 0;
+    const prevClose = prevDay.c || price;
+    vix = {
+      ticker: VIX_TICKER, name: 'VIX', price,
+      change: snap.todaysChange ?? (price - prevClose),
+      changePercent: snap.todaysChangePerc ?? (prevClose ? ((price - prevClose) / prevClose) * 100 : 0),
+    };
+  }
+
   const sectors = snapshots
     .filter(s => SECTOR_ETFS[s.ticker] && s.snapshot)
     .map(s => {
@@ -283,7 +301,7 @@ async function fetchMarketOverview(apiKey: string) {
     })
     .sort((a, b) => b.changePercent - a.changePercent);
 
-  const result = { indices, sectors, timestamp: new Date().toISOString() };
+  const result = { indices, sectors, vix, timestamp: new Date().toISOString() };
   if (indices.length > 0) await setCache(cacheKey, result, CACHE_TTL['market-overview']);
   return result;
 }
@@ -296,6 +314,61 @@ function getDateNDaysAgo(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
   return d.toISOString().split('T')[0];
+}
+
+function getDateNDaysFromNow(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+}
+
+// ---------- Earnings Calendar ----------
+async function fetchEarningsCalendar(apiKey: string) {
+  const cacheKey = 'earnings-calendar';
+  const cached = await getFromCache(cacheKey);
+  if (cached) return cached;
+
+  // Fetch upcoming earnings for this week and next using Polygon's ticker events
+  const from = getToday();
+  const to = getDateNDaysFromNow(14);
+
+  // Use grouped daily to get a broad set of stocks, then filter by those with earnings
+  // Polygon doesn't have a dedicated earnings calendar, so we use the reference/tickers endpoint
+  // with a broader approach: fetch earnings from vX/reference/financials filtered by upcoming dates
+  
+  // Alternative: use the stock financials endpoint to look for upcoming report dates
+  const url = `${POLYGON_BASE}/vX/reference/financials?filing_date.gte=${from}&filing_date.lte=${to}&limit=100&order=asc&sort=filing_date&apiKey=${apiKey}`;
+  
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn('Earnings fetch failed:', res.status);
+      return { earnings: [], from, to };
+    }
+    const data = await res.json();
+    const results = data?.results || [];
+    
+    // Extract unique tickers with their filing dates
+    const earningsMap = new Map<string, any>();
+    for (const item of results) {
+      const ticker = item.tickers?.[0] || item.ticker;
+      if (!ticker || earningsMap.has(ticker)) continue;
+      earningsMap.set(ticker, {
+        ticker,
+        reportDate: item.filing_date || item.period_of_report_date,
+        fiscalPeriod: item.fiscal_period,
+        fiscalYear: item.fiscal_year,
+      });
+    }
+    
+    const earnings = Array.from(earningsMap.values());
+    const result = { earnings, from, to };
+    if (earnings.length > 0) await setCache(cacheKey, result, CACHE_TTL.earnings);
+    return result;
+  } catch (err) {
+    console.error('Earnings calendar error:', err);
+    return { earnings: [], from, to };
+  }
 }
 
 // ---------- Periodic cache cleanup ----------
@@ -314,7 +387,7 @@ async function maybeCleanupCache() {
 }
 
 // ---------- Allowed types ----------
-const VALID_TYPES = new Set(["dossier", "quote", "search", "sparklines", "market-overview"]);
+const VALID_TYPES = new Set(["dossier", "quote", "search", "sparklines", "market-overview", "earnings"]);
 
 // ---------- Main handler ----------
 serve(async (req) => {
@@ -390,6 +463,9 @@ serve(async (req) => {
       }
       case 'market-overview':
         data = await fetchMarketOverview(apiKey);
+        break;
+      case 'earnings':
+        data = await fetchEarningsCalendar(apiKey);
         break;
     }
 

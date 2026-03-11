@@ -20,6 +20,7 @@ export interface SectorData {
 export interface MarketOverviewData {
   indices: IndexData[];
   sectors: SectorData[];
+  vix?: IndexData;
   timestamp: string;
 }
 
@@ -31,6 +32,7 @@ const MOCK_OVERVIEW: MarketOverviewData = {
     { ticker: 'DIA', name: 'Dow Jones', price: 443.21, change: -1.85, changePercent: -0.42 },
     { ticker: 'IWM', name: 'Russell 2000', price: 228.95, change: 2.34, changePercent: 1.03 },
   ],
+  vix: { ticker: 'VIXY', name: 'VIX', price: 18.45, change: -0.32, changePercent: -1.71 },
   sectors: [
     { ticker: 'XLK', name: 'Technology', price: 232.50, change: 3.12, changePercent: 1.36 },
     { ticker: 'XLC', name: 'Communication Services', price: 98.42, change: 1.05, changePercent: 1.08 },

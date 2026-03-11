@@ -27,6 +27,8 @@ import Pricing from "./pages/Pricing";
 import Checkout from "./pages/Checkout";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
+import Profile from "./pages/Profile";
+import SectorStocks from "./pages/SectorStocks";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import ResetPassword from "./pages/ResetPassword";
@@ -82,6 +84,8 @@ const App = () => (
                           <Route path="/alerts" element={<PriceAlerts />} />
                           <Route path="/analytics" element={<Analytics />} />
                           <Route path="/settings" element={<Settings />} />
+                          <Route path="/profile" element={<Profile />} />
+                          <Route path="/sector/:ticker" element={<SectorStocks />} />
                           <Route path="/pricing" element={<Pricing />} />
                           <Route path="/heatmap" element={<HeatMap />} />
                           <Route path="/insiders" element={<InsiderTrading />} />

@@ -1,4 +1,4 @@
-import { formatPercent } from '@/lib/formatters';
+import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { SectorData } from '@/hooks/useMarketOverview';
 
@@ -35,16 +35,17 @@ export function SectorHeatmap({ sectors, isLoading }: SectorHeatmapProps) {
       {sectors.map((sector) => {
         const isPositive = sector.changePercent >= 0;
         return (
-          <div
+          <Link
             key={sector.ticker}
-            className={`rounded-lg p-3 transition-transform hover:scale-[1.02] cursor-default border border-[var(--border-subtle)] ${getHeatColor(sector.changePercent)}`}
+            to={`/sector/${sector.ticker}`}
+            className={`rounded-lg p-3 transition-transform hover:scale-[1.02] cursor-pointer border border-[var(--border-subtle)] ${getHeatColor(sector.changePercent)}`}
           >
             <div className="text-xs font-medium truncate text-[var(--text-secondary)]">{sector.name}</div>
             <div className={`text-lg font-bold font-mono leading-tight mt-0.5 ${isPositive ? 'text-[var(--accent-success)]' : 'text-[var(--accent-danger)]'}`}>
               {isPositive ? '+' : ''}{sector.changePercent.toFixed(2)}%
             </div>
             <div className="text-[10px] font-mono text-[var(--text-muted)] mt-0.5">{sector.ticker}</div>
-          </div>
+          </Link>
         );
       })}
     </div>
