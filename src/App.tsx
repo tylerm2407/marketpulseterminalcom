@@ -49,7 +49,7 @@ const App = () => (
     <AuthProvider>
       <SubscriptionProvider>
         <TooltipProvider>
-          <CustomCursor />
+          
           <ScrollAnimator />
           <Toaster />
           <Sonner />
