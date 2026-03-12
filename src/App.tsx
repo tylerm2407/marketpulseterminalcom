@@ -8,7 +8,7 @@ import { Header } from "@/components/layout/Header";
 import { AuthProvider } from "@/hooks/useAuth";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { NativeAppShell } from "@/native/NativeAppShell";
-import { CustomCursor } from "@/components/effects/CustomCursor";
+
 import { ScrollAnimator } from "@/components/effects/ScrollAnimator";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
@@ -49,7 +49,7 @@ const App = () => (
     <AuthProvider>
       <SubscriptionProvider>
         <TooltipProvider>
-          <CustomCursor />
+          
           <ScrollAnimator />
           <Toaster />
           <Sonner />
